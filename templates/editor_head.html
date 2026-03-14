@@ -1,0 +1,191 @@
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<script src="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+<style>
+    /* HUMAN DARK THEME - SLATE & INDIGO */
+    :root {
+        --human-deep: #0f172a;   /* Slate 950 */
+        --human-slate: #1e293b;  /* Slate 800 */
+        --human-primary: #6366f1; /* Indigo 500 */
+        --human-accent: #818cf8;  /* Indigo 400 */
+        --human-text: #f1f5f9;    /* Slate 100 */
+        --human-dim: #94a3b8;     /* Slate 400 */
+    }
+
+    body {
+        background-color: var(--human-deep) !important;
+        color: var(--human-text) !important;
+    }
+
+    /* Editor Container */
+    .EasyMDEContainer {
+        border-radius: 8px;
+        background: var(--human-deep) !important;
+        border: 1px solid rgba(99, 102, 241, 0.2) !important;
+    }
+
+    /* Toolbar - Human & Clean */
+    .editor-toolbar {
+        background: var(--human-slate) !important;
+        border-bottom: 2px solid rgba(99, 102, 241, 0.3) !important;
+        padding: 6px !important;
+        display: flex !important;
+        align-items: center !important;
+        border-radius: 8px 8px 0 0 !important;
+    }
+    .editor-toolbar a { 
+        color: #cbd5e1 !important; /* Slate 300 - High Contrast */
+        width: 34px !important; 
+        height: 34px !important; 
+        line-height: 34px !important; 
+        text-align: center !important;
+        border-radius: 6px !important;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        margin: 0 1px !important;
+    }
+    .editor-toolbar a:hover { 
+        background: rgba(99, 102, 241, 0.2) !important; 
+        color: #ffffff !important; 
+        transform: translateY(-1px);
+    }
+    .editor-toolbar a.active {
+        background: var(--human-primary) !important;
+        color: white !important;
+        box-shadow: 0 0 12px rgba(99, 102, 241, 0.4) !important;
+    }
+    .editor-toolbar i.separator {
+        border-left: 1px solid rgba(255, 255, 255, 0.1) !important;
+        border-right: none !important;
+        margin: 0 8px !important;
+        height: 18px !important;
+    }
+    
+    /* Table Button Fix */
+    .editor-toolbar a.table, .editor-toolbar a.fa-table {
+        min-width: 32px !important;
+        max-width: 32px !important;
+        flex: 0 0 32px !important;
+    }
+
+    /* CodeMirror - Pleasant Contrast */
+    .CodeMirror {
+        background: var(--human-deep) !important;
+        color: var(--human-text) !important;
+        border: none !important;
+        font-family: 'Fira Code', 'JetBrains Mono', monospace !important;
+        font-size: 15px !important;
+        min-height: 500px !important;
+        padding: 20px !important;
+    }
+    .CodeMirror-cursor { border-left: 2px solid var(--human-primary) !important; }
+    .CodeMirror-selected { background: rgba(99, 102, 241, 0.2) !important; }
+    
+    /* Syntax Highlighting - Human Palette */
+    .cm-header { color: var(--human-accent) !important; font-weight: 700; }
+    .cm-quote { color: #38bdf8 !important; }
+    .cm-comment { color: #64748b !important; }
+    .cm-link { color: #38bdf8 !important; }
+    .cm-url { color: #38bdf8 !important; }
+    .cm-string { color: #4ade80 !important; }
+    .cm-keyword { color: #c084fc !important; }
+
+    /* Preview Rendering */
+    .editor-preview, .editor-preview-side {
+        background: var(--human-deep) !important;
+        color: var(--human-text) !important;
+        padding: 3rem !important;
+        line-height: 1.7;
+    }
+    .editor-preview h1 { color: var(--human-primary); border-bottom: 2px solid rgba(99, 102, 241, 0.1); padding-bottom: 0.5rem; }
+    .editor-preview h2 { color: var(--human-accent); margin-top: 1.5rem; }
+
+    /* FULLSCREEN & SIDE-BY-SIDE */
+    .EasyMDEContainer.fullscreen, 
+    .editor-toolbar.fullscreen,
+    .editor-preview-side {
+        z-index: 9000 !important; 
+        background: var(--human-deep) !important;
+    }
+    
+    body.is-fullscreen .q-drawer,
+    body.is-fullscreen .q-header {
+        visibility: hidden !important;
+    }
+</style>
+<script>
+    window.MKEditor = {
+        instance: null,
+        init: function() {
+            const el = document.getElementById('chronos-editor');
+            if (!el || this.instance) return;
+
+            this.instance = new EasyMDE({
+                element: el,
+                spellChecker: false,
+                forceSync: true,
+                autoDownloadFontAwesome: false,
+                toolbar: [
+                    "bold", "italic", "heading", "|", "quote", "unordered-list", "ordered-list", "|", 
+                    "link", "image", "table", "|", "preview", 
+                    {
+                        name: "side-by-side",
+                        action: function(editor) {
+                            var wasSide = editor.isSideBySideActive();
+                            editor.toggleSideBySide();
+                            if (editor.isSideBySideActive() && !editor.isFullscreenActive()) {
+                                editor.toggleFullScreen();
+                            } else if (!editor.isSideBySideActive() && wasSide && editor.isFullscreenActive()) {
+                                editor.toggleFullScreen();
+                            }
+                        },
+                        className: "fa fa-columns",
+                        title: "Side by Side"
+                    },
+                    "fullscreen", "|", "guide"
+                ],
+                previewRender: function(t, p) {
+                    const html = this.parent.markdown(t);
+                    setTimeout(() => window.MKEditor.renderMermaid(p), 100);
+                    return html;
+                }
+            });
+
+            this.instance.codemirror.on("refresh", () => {
+                if (this.instance.isFullscreenActive()) {
+                    document.body.classList.add('is-fullscreen');
+                } else {
+                    document.body.classList.remove('is-fullscreen');
+                }
+            });
+
+            setTimeout(() => {
+                this.instance.codemirror.refresh();
+                this.instance.codemirror.focus();
+            }, 500);
+        },
+        setValue: function(v) {
+            if (!this.instance) { this.init(); setTimeout(() => this.setValue(v), 300); return; }
+            this.instance.value(v || "");
+            this.instance.codemirror.refresh();
+            this.instance.codemirror.focus();
+        },
+        getValue: function() { return this.instance ? this.instance.value() : ""; },
+        renderMermaid: function(container) {
+            if (!window.mermaid || !container) return;
+            container.querySelectorAll("pre code.language-mermaid").forEach((c, i) => {
+                const p = c.parentElement;
+                if (p.hasAttribute('data-processed')) return;
+                const id = 'm-' + i + Date.now();
+                mermaid.render(id, c.textContent).then(({svg}) => {
+                    p.innerHTML = svg;
+                    p.setAttribute('data-processed', 'true');
+                    p.style.background = 'transparent';
+                });
+            });
+        }
+    };
+    setInterval(() => {
+        if (document.getElementById('chronos-editor') && !window.MKEditor.instance) window.MKEditor.init();
+    }, 1000);
+</script>
