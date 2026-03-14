@@ -35,31 +35,49 @@ class ModalSystem:
         dialog.open()
 
     @staticmethod
-    def folder_picker_dialog(current_path, project_root, on_select, navigate_logic):
+    def folder_picker_dialog(current_path, min_root, on_select, navigate_logic):
         dialog = ui.dialog()
         state = {'path': current_path}
         
         def update_ui():
             content_container.clear()
+            # Forza il percorso a essere almeno min_root
+            if not state['path'].startswith(min_root):
+                state['path'] = min_root
+                
             with content_container:
                 # Breadcrumbs stile Quasar
                 with ui.row().classes('w-full q-pa-sm bg-[#1e293b] rounded items-center'):
-                    parts = state['path'].strip('/').split('/')
-                    acc = '/'
-                    ui.icon('folder', size='xs').classes('q-mr-xs')
+                    # Calcoliamo il path relativo a min_root per i breadcrumbs
+                    rel = os.path.relpath(state['path'], min_root)
+                    parts = [] if rel == "." else rel.split(os.sep)
+                    
+                    ui.icon('home', size='xs').classes('q-mr-xs')
+                    ui.label('HOME').classes('cursor-pointer text-primary text-weight-medium').on('click', lambda: (state.update({'path': min_root}), update_ui()))
+                    
+                    acc = min_root
                     for part in parts:
                         if not part: continue
                         acc = os.path.join(acc, part)
+                        ui.label('/').classes('q-px-xs opacity-50')
                         def mk_go(p=acc):
                             state['path'] = p
                             update_ui()
                         ui.label(part).classes('cursor-pointer text-primary text-weight-medium').on('click', mk_go)
-                        ui.label('/').classes('q-px-xs opacity-50')
 
                 # Lista items stile Quasar
                 with ui.scroll_area().style('height: 300px; width: 100%').classes('border border-white/10 q-mt-md bg-[#0f172a]'):
                     items = navigate_logic(state['path'])
                     with ui.list().props('bordered separator'):
+                        # Il pulsante "torna indietro" appare solo se non siamo già nel min_root
+                        if state['path'] != min_root:
+                            parent = os.path.dirname(state['path'])
+                            with ui.item(on_click=lambda: (state.update({'path': parent}), update_ui())).props('clickable'):
+                                with ui.item_section().props('avatar'):
+                                    ui.icon('arrow_back', color='grey')
+                                with ui.item_section():
+                                    ui.label('.. (Torna Su)').classes('opacity-60')
+
                         for item in items:
                             if item['is_dir']:
                                 with ui.item(on_click=lambda p=item['path']: (state.update({'path': p}), update_ui())).props('clickable'):
@@ -72,7 +90,14 @@ class ModalSystem:
                 with ui.column().classes('w-full q-mt-md q-gutter-sm'):
                     ui.label('PERCORSO MANUALE').classes('text-overline text-primary')
                     path_input = ui.input(value=state['path']).props('outlined dense color=primary').classes('w-full')
-                    path_input.on('change', lambda e: (state.update({'path': e.value}), update_ui()))
+                    def on_path_change(e):
+                        new_p = os.path.abspath(e.value)
+                        if new_p.startswith(min_root):
+                            state['path'] = new_p
+                        else:
+                            ui.notify('Accesso negato fuori dalla Home', type='warning')
+                        update_ui()
+                    path_input.on('change', on_path_change)
 
         with dialog, ui.card().classes('q-pa-none overflow-hidden bg-[#0f172a]').style('width: 540px'):
             with ui.column().classes('w-full q-pa-md bg-primary text-white'):

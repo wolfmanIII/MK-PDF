@@ -5,12 +5,18 @@
 <style>
     /* HUMAN DARK THEME - SLATE & INDIGO */
     :root {
-        --human-deep: #0f172a;   /* Slate 950 */
-        --human-slate: #1e293b;  /* Slate 800 */
-        --human-primary: #6366f1; /* Indigo 500 */
-        --human-accent: #818cf8;  /* Indigo 400 */
-        --human-text: #f1f5f9;    /* Slate 100 */
-        --human-dim: #94a3b8;     /* Slate 400 */
+        --human-deep: #0f172a;
+        /* Slate 950 */
+        --human-slate: #1e293b;
+        /* Slate 800 */
+        --human-primary: #6366f1;
+        /* Indigo 500 */
+        --human-accent: #818cf8;
+        /* Indigo 400 */
+        --human-text: #f1f5f9;
+        /* Slate 100 */
+        --human-dim: #94a3b8;
+        /* Slate 400 */
     }
 
     body {
@@ -26,6 +32,7 @@
     }
 
     /* Toolbar - Human & Clean */
+    /* Toolbar Container - Must have background */
     .editor-toolbar {
         background: var(--human-slate) !important;
         border-bottom: 2px solid rgba(99, 102, 241, 0.3) !important;
@@ -34,35 +41,56 @@
         align-items: center !important;
         border-radius: 8px 8px 0 0 !important;
     }
-    .editor-toolbar a { 
-        color: #cbd5e1 !important; /* Slate 300 - High Contrast */
-        width: 34px !important; 
-        height: 34px !important; 
-        line-height: 34px !important; 
-        text-align: center !important;
-        border-radius: 6px !important;
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* Toolbar Buttons - Clean & Transparent */
+    .editor-toolbar a, 
+    .editor-toolbar button {
+        background: transparent !important;
+        color: #cbd5e1 !important;
+        border: 1px solid transparent !important;
+        border-radius: 4px !important;
+        width: 34px !important;
+        height: 34px !important;
+        line-height: 34px !important;
         margin: 0 1px !important;
+        cursor: pointer !important;
+        text-align: center !important;
+        display: inline-block !important;
     }
-    .editor-toolbar a:hover { 
-        background: rgba(99, 102, 241, 0.2) !important; 
-        color: #ffffff !important; 
-        transform: translateY(-1px);
+
+    .editor-toolbar a:hover, 
+    .editor-toolbar button:hover {
+        background: rgba(255, 255, 255, 0.05) !important;
+        color: #ffffff !important;
     }
-    .editor-toolbar a.active {
-        background: var(--human-primary) !important;
-        color: white !important;
-        box-shadow: 0 0 12px rgba(99, 102, 241, 0.4) !important;
+
+    /* Lo stato attivo aggiunge SOLO il bordo bianco, come richiesto */
+    .EasyMDEContainer .editor-toolbar a.active, 
+    .EasyMDEContainer .editor-toolbar button.active {
+        background: transparent !important;
+        border: 1px solid #ffffff !important;
+        color: #ffffff !important;
+        opacity: 1 !important;
     }
+
+    /* Pulizia Icone */
+    .editor-toolbar a::before,
+    .editor-toolbar button::before,
+    .editor-toolbar a i,
+    .editor-toolbar button i {
+        color: inherit !important;
+    }
+
     .editor-toolbar i.separator {
         border-left: 1px solid rgba(255, 255, 255, 0.1) !important;
         border-right: none !important;
         margin: 0 8px !important;
         height: 18px !important;
     }
-    
+
     /* Table Button Fix */
-    .editor-toolbar a.table, .editor-toolbar a.fa-table {
+    .editor-toolbar a.table,
+    .editor-toolbar a.fa-table {
         min-width: 32px !important;
         max-width: 32px !important;
         flex: 0 0 32px !important;
@@ -78,36 +106,73 @@
         min-height: 500px !important;
         padding: 20px !important;
     }
-    .CodeMirror-cursor { border-left: 2px solid var(--human-primary) !important; }
-    .CodeMirror-selected { background: rgba(99, 102, 241, 0.2) !important; }
-    
+
+    .CodeMirror-cursor {
+        border-left: 2px solid var(--human-primary) !important;
+    }
+
+    .CodeMirror-selected {
+        background: rgba(99, 102, 241, 0.2) !important;
+    }
+
     /* Syntax Highlighting - Human Palette */
-    .cm-header { color: var(--human-accent) !important; font-weight: 700; }
-    .cm-quote { color: #38bdf8 !important; }
-    .cm-comment { color: #64748b !important; }
-    .cm-link { color: #38bdf8 !important; }
-    .cm-url { color: #38bdf8 !important; }
-    .cm-string { color: #4ade80 !important; }
-    .cm-keyword { color: #c084fc !important; }
+    .cm-header {
+        color: var(--human-accent) !important;
+        font-weight: 700;
+    }
+
+    .cm-quote {
+        color: #38bdf8 !important;
+    }
+
+    .cm-comment {
+        color: #64748b !important;
+    }
+
+    .cm-link {
+        color: #38bdf8 !important;
+    }
+
+    .cm-url {
+        color: #38bdf8 !important;
+    }
+
+    .cm-string {
+        color: #4ade80 !important;
+    }
+
+    .cm-keyword {
+        color: #c084fc !important;
+    }
 
     /* Preview Rendering */
-    .editor-preview, .editor-preview-side {
+    .editor-preview,
+    .editor-preview-side {
         background: var(--human-deep) !important;
         color: var(--human-text) !important;
         padding: 3rem !important;
         line-height: 1.7;
     }
-    .editor-preview h1 { color: var(--human-primary); border-bottom: 2px solid rgba(99, 102, 241, 0.1); padding-bottom: 0.5rem; }
-    .editor-preview h2 { color: var(--human-accent); margin-top: 1.5rem; }
+
+    .editor-preview h1 {
+        color: var(--human-primary);
+        border-bottom: 2px solid rgba(99, 102, 241, 0.1);
+        padding-bottom: 0.5rem;
+    }
+
+    .editor-preview h2 {
+        color: var(--human-accent);
+        margin-top: 1.5rem;
+    }
 
     /* FULLSCREEN & SIDE-BY-SIDE */
-    .EasyMDEContainer.fullscreen, 
+    .EasyMDEContainer.fullscreen,
     .editor-toolbar.fullscreen,
     .editor-preview-side {
-        z-index: 9000 !important; 
+        z-index: 9000 !important;
         background: var(--human-deep) !important;
     }
-    
+
     body.is-fullscreen .q-drawer,
     body.is-fullscreen .q-header {
         visibility: hidden !important;
@@ -116,7 +181,7 @@
 <script>
     window.MKEditor = {
         instance: null,
-        init: function() {
+        init: function () {
             const el = document.getElementById('chronos-editor');
             if (!el || this.instance) return;
 
@@ -126,11 +191,11 @@
                 forceSync: true,
                 autoDownloadFontAwesome: false,
                 toolbar: [
-                    "bold", "italic", "heading", "|", "quote", "unordered-list", "ordered-list", "|", 
-                    "link", "image", "table", "|", "preview", 
+                    "bold", "italic", "heading", "|", "quote", "unordered-list", "ordered-list", "|",
+                    "link", "image", "table", "|", "preview",
                     {
                         name: "side-by-side",
-                        action: function(editor) {
+                        action: function (editor) {
                             var wasSide = editor.isSideBySideActive();
                             editor.toggleSideBySide();
                             if (editor.isSideBySideActive() && !editor.isFullscreenActive()) {
@@ -144,7 +209,7 @@
                     },
                     "fullscreen", "|", "guide"
                 ],
-                previewRender: function(t, p) {
+                previewRender: function (t, p) {
                     const html = this.parent.markdown(t);
                     setTimeout(() => window.MKEditor.renderMermaid(p), 100);
                     return html;
@@ -164,20 +229,20 @@
                 this.instance.codemirror.focus();
             }, 500);
         },
-        setValue: function(v) {
+        setValue: function (v) {
             if (!this.instance) { this.init(); setTimeout(() => this.setValue(v), 300); return; }
             this.instance.value(v || "");
             this.instance.codemirror.refresh();
             this.instance.codemirror.focus();
         },
-        getValue: function() { return this.instance ? this.instance.value() : ""; },
-        renderMermaid: function(container) {
+        getValue: function () { return this.instance ? this.instance.value() : ""; },
+        renderMermaid: function (container) {
             if (!window.mermaid || !container) return;
             container.querySelectorAll("pre code.language-mermaid").forEach((c, i) => {
                 const p = c.parentElement;
                 if (p.hasAttribute('data-processed')) return;
                 const id = 'm-' + i + Date.now();
-                mermaid.render(id, c.textContent).then(({svg}) => {
+                mermaid.render(id, c.textContent).then(({ svg }) => {
                     p.innerHTML = svg;
                     p.setAttribute('data-processed', 'true');
                     p.style.background = 'transparent';

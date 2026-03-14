@@ -11,13 +11,13 @@ import asyncio
 
 # --- Configuration ---
 GOTENBERG_URL = os.getenv('GOTENBERG_URL', 'http://localhost:3000')
-DEFAULT_ROOT = '/home/wolfman/projects/Pirates-Ancients-Corporations/Nemici_Tra_Le_Stelle'
+USER_HOME = os.path.expanduser('~')
 
 # --- Arguments ---
 parser = argparse.ArgumentParser(description='MK-PDF: Industrial Markdown Editor')
-parser.add_argument('path', nargs='?', default=DEFAULT_ROOT)
+parser.add_argument('path', nargs='?', default=None)
 args, _ = parser.parse_known_args()
-PROJECT_ROOT = os.path.abspath(args.path)
+PROJECT_ROOT = os.path.abspath(args.path) if args.path else None
 
 # Cache per il PDF
 pdf_cache = {'latest': b''}
@@ -28,12 +28,12 @@ def read_template(filename):
 
 class ChronosApp:
     def __init__(self):
-        self.fm = FileManager(PROJECT_ROOT)
-        self.client = GotenbergClient(GOTENBERG_URL)
+        self.fm = FileManager(PROJECT_ROOT) if PROJECT_ROOT else None
         self.editor = Editor()
+        self.client = GotenbergClient(GOTENBERG_URL)
         
         self.current_file = None
-        self.current_dir = self.fm.project_root
+        self.current_dir = self.fm.project_root if self.fm else USER_HOME
         
         # UI Elements
         self.file_list_container = None
@@ -71,28 +71,42 @@ class ChronosApp:
         with ui.column().classes('q-pa-md w-full q-gutter-md'):
             with ui.column().classes('q-gutter-xs'):
                 ui.label('REPOSITORIES').classes('text-overline opacity-60')
-                ui.button('Cambia Root', icon='folder_open', on_click=self.open_root_picker).props('flat dense color=primary')
+                ui.button('Scegli Root', icon='folder_open', on_click=self.open_root_picker).props('flat dense color=primary')
                 
-                with ui.row().classes('items-center q-pa-sm rounded-borders text-primary cursor-pointer') \
+                self.root_badge = ui.row().classes('items-center q-pa-sm rounded-borders text-primary cursor-pointer') \
                     .style('background: rgba(99, 102, 241, 0.1)') \
-                    .on('click', self.go_to_root):
+                    .on('click', self.go_to_root)
+                self.root_badge.visible = False
+                with self.root_badge:
                     ui.icon('folder_special', size='xs')
-                    self.root_label = ui.label(os.path.basename(self.fm.project_root)).classes('text-weight-bold truncate')
+                    self.root_label = ui.label('').classes('text-weight-bold truncate')
+        if self.fm:
+            self.root_badge.visible = True
+            self.root_label.set_text(os.path.basename(self.fm.project_root))
 
     def _render_browser_view(self):
-        with ui.row().classes('w-full items-center justify-between'):
-            self.breadcrumb_container = ui.row().classes('items-center q-gutter-xs')
-            ui.button('Nuovo File', icon='add', on_click=self.open_new_file_dialog).props('unelevated color=primary')
-        
-        with ui.card().props('bordered flat').classes('w-full q-pa-none bg-[#0f172a]'):
-            with ui.row().classes('w-full q-pa-sm bg-[#1e293b] items-center text-overline'):
-                ui.label('Nome').classes('col-grow q-pl-md')
-                ui.label('Dimensione').classes('col-2 text-right')
-                ui.label('Modificato').classes('col-3 text-right q-pr-md')
+        self.browser_view.clear()
+        with self.browser_view:
+            if not self.fm:
+                with ui.column().classes('w-full items-center q-pa-xl q-gutter-md'):
+                    ui.icon('folder_open', size='5rem', color='primary').classes('opacity-20')
+                    ui.label('NESSUNA DIRECTORY SELEZIONATA').classes('text-h6 opacity-50')
+                    ui.button('Seleziona Directory di Lavoro', icon='search', on_click=self.open_root_picker).props('unelevated color=primary')
+                return
+
+            with ui.row().classes('w-full items-center justify-between'):
+                self.breadcrumb_container = ui.row().classes('items-center q-gutter-xs')
+                ui.button('Nuovo File', icon='add', on_click=self.open_new_file_dialog).props('unelevated color=primary')
             
-            self.file_list_container = ui.column().classes('w-full')
-        
-        self.update_ui()
+            with ui.card().props('bordered flat').classes('w-full q-pa-none bg-[#0f172a]'):
+                with ui.row().classes('w-full q-pa-sm bg-[#1e293b] items-center text-overline'):
+                    ui.label('Nome').classes('col-grow q-pl-md')
+                    ui.label('Dimensione').classes('col-2 text-right')
+                    ui.label('Modificato').classes('col-3 text-right q-pr-md')
+                
+                self.file_list_container = ui.column().classes('w-full')
+            
+            self.update_ui()
 
     def _render_editor_view(self):
         with ui.row().classes('w-full q-pa-md items-center justify-between bg-[#1e293b] rounded-borders q-mb-md'):
@@ -111,6 +125,7 @@ class ChronosApp:
     # --- UI Logic ---
 
     def update_ui(self):
+        if not self.fm: return
         self._update_file_list()
         self._update_breadcrumbs(self.breadcrumb_container, self.current_dir)
 
@@ -238,12 +253,15 @@ class ChronosApp:
         ModalSystem.confirm_delete(os.path.basename(path), on_confirm)
 
     def open_root_picker(self):
-        ModalSystem.folder_picker_dialog(self.current_dir, self.fm.project_root, self._on_root_selected, self.fm.list_items)
+        start_dir = self.current_dir if self.fm else USER_HOME
+        ModalSystem.folder_picker_dialog(start_dir, USER_HOME, self._on_root_selected, self.fm.list_items if self.fm else FileManager(USER_HOME).list_items)
 
     def _on_root_selected(self, path, dialog):
         self.fm = FileManager(path)
+        self.current_dir = path
+        self.root_badge.visible = True
         self.root_label.set_text(os.path.basename(path))
-        self.go_to_root()
+        self._render_browser_view()
         dialog.close()
 
 app_obj = ChronosApp()
