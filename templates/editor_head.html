@@ -178,6 +178,26 @@
         visibility: hidden !important;
     }
 
+    /* Fullscreen Hint */
+    body.is-fullscreen::after {
+        content: 'Premi ESC per uscire';
+        position: fixed;
+        top: 20px;
+        right: 30px;
+        background: rgba(15, 23, 42, 0.8); /* Deep slate with transparency */
+        color: var(--human-accent);
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-family: sans-serif;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        z-index: 10001;
+        pointer-events: none;
+        border: 1px solid rgba(129, 140, 248, 0.3);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    }
+
     /* Hide redundant internal buttons and the 'ghost' exit button */
     .editor-toolbar .fa-arrows-alt,
     .editor-toolbar .fa-compress,
