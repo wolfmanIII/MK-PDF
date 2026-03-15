@@ -43,6 +43,9 @@ class ChronosApp:
         self.search_query = ""
         self.is_searching = False
         
+        # UI Options
+        self.internal_scroll = False
+        
         # UI Elements
         self.file_list_container = None
         self.breadcrumb_container = None
@@ -113,20 +116,34 @@ class ChronosApp:
             self.update_ui()
 
     def _render_editor_view(self):
-        with ui.row().classes('w-full q-pa-md items-center justify-between bg-[#1e293b] sticky top-0 z-50 shadow-lg'):
+        header_classes = 'w-full q-pa-md items-center justify-between bg-[#1e293b] z-50 shadow-lg'
+        if not self.internal_scroll:
+            header_classes += ' sticky top-0'
+        
+        with ui.row().classes(header_classes):
             with ui.row().classes('items-center q-gutter-sm'):
                 ui.icon('edit_note', size='sm', color='primary').classes('opacity-50')
                 self.editor_breadcrumb_container = ui.row().classes('items-center q-gutter-xs')
             
             with ui.row().classes('q-gutter-sm items-center'):
+                # Toggle Scroll Mode
+                ui.button(icon='unfold_more', on_click=self.toggle_scroll_mode) \
+                    .props('flat dense color=primary') \
+                    .tooltip('Attiva/Disattiva Scroll Interno') \
+                    .classes('opacity-50 hover:opacity-100')
+                
                 ui.button(icon='fullscreen', on_click=lambda: ui.run_javascript('if(window.MKEditor) window.MKEditor.instance.toggleFullScreen()')).props('flat color=primary id=btn-fullscreen').tooltip('Fullscreen')
                 ui.button('Chiudi', icon='close', on_click=self.close_file).props('flat text-color=grey id=btn-close')
                 ui.button('Salva', icon='save', on_click=self.save_file).props('unelevated color=primary id=btn-save')
                 ui.select(options=self.available_templates, value=self.active_pdf_template, on_change=lambda e: setattr(self, 'active_pdf_template', e.value)).props('flat dense options-dark').classes('text-caption opacity-70 w-24')
                 ui.button('PDF', icon='picture_as_pdf', on_click=self.print_pdf).props('unelevated color=secondary id=btn-pdf')
         
-        with ui.column().classes('w-full q-pa-lg'):
-            with ui.card().props('flat bordered').classes('w-full col-grow q-pa-none'):
+        editor_card_classes = 'w-full q-pa-none'
+        if not self.internal_scroll:
+            editor_card_classes += ' q-mt-md'
+            
+        with ui.column().classes('w-full q-pa-lg').style('height: calc(100vh - 100px)' if self.internal_scroll else ''):
+            with ui.card().props('flat bordered').classes(f'{editor_card_classes} col-grow'):
                 self.editor.create()
 
     # --- UI Logic ---
@@ -231,6 +248,13 @@ class ChronosApp:
     def go_to_root(self):
         self.close_file()
         self.go_to_dir(self.fm.project_root)
+
+    def toggle_scroll_mode(self):
+        self.internal_scroll = not self.internal_scroll
+        self.editor_view.clear()
+        with self.editor_view:
+            self._render_editor_view()
+        ui.notify('Scroll interno ' + ('attivo' if self.internal_scroll else 'disattivato'))
 
     def on_search_change(self, e):
         self.search_query = e.value
