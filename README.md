@@ -39,12 +39,13 @@ Launch the application:
 ```bash
 pipenv run python main.py
 ```
-*Note: By default, the application starts in the user's home directory. Use the **Cambia Root** button inside the app to navigate to your project workspace.*
+*Note: By default, the application starts in the user's home directory. Use the **Establish Root** button inside the app to navigate to your project workspace.*
 
 ---
 
 ## 📂 Features & Dynamic Navigation
-- **Dynamic Sector Selection**: Click the `folder_open` icon in the sidebar to change the root directory on the fly without restarting the app.
+- **Dynamic Sector Selection**: Click the `folder_open` icon in the sidebar to change the root directory on the fly.
+- **English Localization**: Fully localized in English with an industrial/sci-fi tone (e.g., "Establish Root", "Secure Records", "Data Purge").
 - **Breadcrumb Navigation**: Easily jump between subfolders of any local project.
 
 - `main.py`: Core orchestrator and FastAPI server.

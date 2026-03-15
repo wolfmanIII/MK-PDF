@@ -1,5 +1,5 @@
 # Analisi Tecnica: Progetto MK-PDF
-**Versione:** 1.1.0  
+**Versione:** 1.2.0  
 **Data di Analisi:** 2026-03-15  
 **Classificazione:** Documentazione Tecnica di Sistema
 
@@ -28,10 +28,10 @@ MK-PDF è un'applicazione web-based modulare scritta in Python, progettata per l
 
 Il sistema segue un pattern a componenti per massimizzare la manutenibilità:
 
-1.  **Dialogs (`dialogs.py`):** Gestisce tutte le modali (Nuovo File, Delete, Root Picker) con uno stile premium unificato, feedback Quasar e supporto nativo per callback asincroni.
+1.  **Dialogs (`dialogs.py`):** Gestisce tutte le modali (New Record, Purge, Establish Root) con uno stile premium unificato, feedback Quasar e supporto nativo per callback asincroni. L'intera interfaccia è localizzata in inglese con un tono industriale sci-fi.
 2.  **FileManager Logic (`file_manager.py`):** Modulo core per la navigazione e ricerca ricorsiva. Migrato integralmente ad **Asyncio** per garantire che le operazioni su disco non blocchino il loop dell'interfaccia.
 3.  **Editor Bridge (`editor.py`):** Interfaccia Python/JS per EasyMDE. Gestisce il ciclo di vita dell'editor e la sincronizzazione del contenuto tramite `run_javascript`.
-4.  **Main App (`main.py`):** Orchestratore dello stato (Scroll Mode, Search State) e Server API per PDF streaming. Gestisce il montaggio degli asset statici locali.
+4.  **Main App (`main.py`):** Orchestratore dello stato (Scroll Mode, Search State) e Server API per PDF streaming. Gestisce il montaggio degli asset statici locali e la distribuzione dei comandi di sistema (Secure Records, Terminate).
 
 ## 4. Pipeline di Conversione PDF
 
