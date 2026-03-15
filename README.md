@@ -35,11 +35,11 @@ pipenv install
 ```
 
 ### 3. Execution
-Launch the application (optionally providing a target directory):
+Launch the application:
 ```bash
-pipenv run python main.py /percorso/alla/tua/cartella
+pipenv run python main.py
 ```
-*If no path is provided, it defaults to the 'Nemici Tra Le Stelle' project folder.*
+*Note: The application is configured to automatically target the 'Nemici Tra Le Stelle' project workspace.*
 
 ---
 
