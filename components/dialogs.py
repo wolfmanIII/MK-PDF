@@ -7,18 +7,18 @@ class ModalSystem:
         with ui.dialog() as dialog, ui.card().classes('q-pa-none overflow-hidden bg-[#0f172a]').style('width: 420px'):
             # Header con stile Quasar
             with ui.column().classes('w-full q-pa-md bg-primary text-white'):
-                ui.label('NUOVO DOCUMENTO').classes('text-h6 text-weight-bold')
-                ui.label('Inizializzazione sequenza dati markdown').classes('text-caption opacity-80 text-uppercase')
+                ui.label('NEW RECORD').classes('text-h6 text-weight-bold')
+                ui.label('Initializing markdown data sequence').classes('text-caption opacity-80 text-uppercase')
                 
             with ui.column().classes('q-pa-lg w-full q-gutter-md'):
-                ui.label('IDENTIFICATIVO FILE').classes('text-overline text-primary')
-                name_input = ui.input(placeholder='es: rapporto_missione.md').props('outlined autofocus color=primary').classes('w-full')
+                ui.label('RECORD IDENTIFIER').classes('text-overline text-primary')
+                name_input = ui.input(placeholder='ex: mission_log.md').props('outlined autofocus color=primary').classes('w-full')
                 
                 async def handle_create():
                     await on_create(name_input.value, dialog)
                 with ui.row().classes('w-full justify-end q-gutter-sm'):
-                    ui.button('Annulla', on_click=dialog.close).props('flat color=primary')
-                    ui.button('Crea File', on_click=handle_create).props('unelevated color=primary').classes('q-px-md')
+                    ui.button('Abort', on_click=dialog.close).props('flat color=primary')
+                    ui.button('Generate', on_click=handle_create).props('unelevated color=primary').classes('q-px-md')
         dialog.open()
 
 
@@ -27,7 +27,7 @@ class ModalSystem:
         with ui.dialog() as dialog, ui.card().classes('q-pa-none overflow-hidden bg-[#0f172a]').style('width: 400px'):
             with ui.row().classes('q-pa-md bg-negative text-white items-center'):
                 ui.icon('warning', size='md').classes('q-mr-sm')
-                ui.label('ELIMINAZIONE DATI').classes('text-h6 text-weight-bold')
+                ui.label('DATA PURGE').classes('text-h6 text-weight-bold')
             
             with ui.column().classes('q-pa-md w-full items-center'):
                 ui.label(f'Confermi l\'epurazione definitiva di "{filename}"?').classes('text-body1 text-center')
@@ -35,8 +35,8 @@ class ModalSystem:
                 async def handle_confirm():
                     await on_confirm(dialog)
                 with ui.row().classes('q-gutter-md q-pt-md'):
-                    ui.button('Annulla', on_click=dialog.close).props('flat color=grey')
-                    ui.button('Epurazione', on_click=handle_confirm).props('unelevated color=negative')
+                    ui.button('Abort', on_click=dialog.close).props('flat color=grey')
+                    ui.button('PURGE', on_click=handle_confirm).props('unelevated color=negative')
         dialog.open()
 
     @staticmethod
@@ -104,7 +104,7 @@ class ModalSystem:
 
                 # Input percorso
                 with ui.column().classes('w-full q-mt-lg q-gutter-sm'):
-                    ui.label('LOCALIZZAZIONE MANUALE').classes('text-overline text-primary letter-spacing-1')
+                    ui.label('MANUAL DISPLACEMENT').classes('text-overline text-primary letter-spacing-1')
                     with ui.input(value=state['path']).props('outlined dense color=primary bg-color=slate-900').classes('w-full shadow-inner') as path_input:
                         with path_input.add_slot('prepend'):
                             ui.icon('place', size='xs')
@@ -114,22 +114,22 @@ class ModalSystem:
                         if new_p.startswith(min_root):
                             state['path'] = new_p
                         else:
-                            ui.notify('Accesso negato fuori dalla Home', type='warning')
+                            ui.notify('Restricted access: Workspace perimeter exceeded', type='warning')
                         await update_ui()
                     path_input.on('change', on_path_change)
 
         with dialog, ui.card().classes('q-pa-none overflow-hidden bg-[#0f172a]').style('width: 540px'):
             with ui.column().classes('w-full q-pa-md bg-primary text-white'):
-                ui.label('Settore Operativo').classes('text-h6 text-weight-bold')
-                ui.label('Navigazione sorgenti dati').classes('text-caption opacity-80')
+                ui.label('Operational Sector').classes('text-h6 text-weight-bold')
+                ui.label('Data Stream Navigation').classes('text-caption opacity-80')
             
             content_container = ui.column().classes('q-pa-md w-full')
             ui.timer(0.1, update_ui, once=True)
             
             with ui.row().classes('q-pa-md w-full justify-end q-gutter-sm border-t'):
-                ui.button('Annulla', on_click=dialog.close).props('flat color=primary')
+                ui.button('Abort', on_click=dialog.close).props('flat color=primary')
                 async def submit():
                     await on_select(state['path'], dialog)
-                ui.button('Connetti', on_click=submit).props('unelevated color=primary')
+                ui.button('Link', on_click=submit).props('unelevated color=primary')
         
         dialog.open()

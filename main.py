@@ -56,7 +56,7 @@ class MKPDFApp:
         @ui.page('/')
         async def main_page():
             ui.dark_mode().enable()
-            # Tema "Umano": Slate & Indigo (Più morbido e professionale)
+            # Human Theme: Slate & Indigo (Industrial Standard)
             ui.colors(primary='#6366f1', secondary='#1e293b', accent='#818cf8')
             
             ui.add_head_html(read_template('base_head.html'))
@@ -83,8 +83,8 @@ class MKPDFApp:
             if not self.fm:
                 with ui.column().classes('w-full items-center q-pa-xl q-gutter-md'):
                     ui.icon('folder_open', size='5rem', color='primary').classes('opacity-20')
-                    ui.label('NESSUNA DIRECTORY SELEZIONATA').classes('text-h6 opacity-50')
-                    ui.button('Seleziona Directory di Lavoro', icon='search', on_click=self.open_root_picker).props('unelevated color=primary')
+                    ui.label('NO WORKSPACE DETECTED').classes('text-h6 opacity-50')
+                    ui.button('Identify Workspace Root', icon='search', on_click=self.open_root_picker).props('unelevated color=primary')
                 return
 
             with ui.row().classes('w-full items-center justify-between q-mb-md'):
@@ -94,7 +94,7 @@ class MKPDFApp:
                 
                 with ui.row().classes('items-center q-gutter-md'):
                     # Search Bar
-                    with ui.input(placeholder='Cerca nei testi...', on_change=self.on_search_change).props('outlined dense color=primary').classes('w-64 bg-[#1e293b]') as self.search_input:
+                    with ui.input(placeholder='Search archives...', on_change=self.on_search_change).props('outlined dense color=primary').classes('w-64 bg-[#1e293b]') as self.search_input:
                         with self.search_input.add_slot('prepend'):
                             ui.icon('search')
                         with self.search_input.add_slot('append'):
@@ -103,14 +103,14 @@ class MKPDFApp:
                     with ui.row().classes('q-gutter-sm'):
                         pass
                             
-                        ui.button('Cambia Root', icon='folder_open', on_click=self.open_root_picker).props('flat dense color=primary')
-                        ui.button('Nuovo File', icon='add', on_click=self.open_new_file_dialog).props('unelevated color=primary')
+                        ui.button('Establish Root', icon='folder_open', on_click=self.open_root_picker).props('flat dense color=primary')
+                        ui.button('New Entry', icon='add', on_click=self.open_new_file_dialog).props('unelevated color=primary')
             
             with ui.card().props('bordered flat').classes('w-full q-pa-none bg-[#0f172a]'):
                 with ui.row().classes('w-full q-pa-sm bg-[#1e293b] items-center text-overline'):
-                    ui.label('Nome').classes('col-grow q-pl-md')
-                    ui.label('Dimensione').classes('col-2 text-right')
-                    ui.label('Modificato').classes('col-3 text-right q-pr-md')
+                    ui.label('Identifier').classes('col-grow q-pl-md')
+                    ui.label('Bitstream').classes('col-2 text-right')
+                    ui.label('Last Update').classes('col-3 text-right q-pr-md')
                 
                 self.file_list_container = ui.column().classes('w-full')
             
@@ -131,14 +131,14 @@ class MKPDFApp:
                 icon = 'unfold_less' if self.internal_scroll else 'unfold_more'
                 self.scroll_toggle_btn = ui.button(icon=icon, on_click=self.toggle_scroll_mode) \
                     .props('flat dense color=primary') \
-                    .tooltip('Cambia modalità di scorrimento') \
+                    .tooltip('Toggle Scroll Protocol') \
                     .classes('opacity-50 hover:opacity-100')
                 
-                ui.button(icon='fullscreen', on_click=lambda: ui.run_javascript('if(window.MKEditor) window.MKEditor.instance.toggleFullScreen()')).props('flat color=primary id=btn-fullscreen').tooltip('Fullscreen')
-                ui.button('Chiudi', icon='close', on_click=self.close_file).props('flat text-color=grey id=btn-close')
-                ui.button('Salva', icon='save', on_click=self.save_file).props('unelevated color=primary id=btn-save')
+                ui.button(icon='fullscreen', on_click=lambda: ui.run_javascript('if(window.MKEditor) window.MKEditor.instance.toggleFullScreen()')).props('flat color=primary id=btn-fullscreen').tooltip('Neural Link Fullscreen')
+                ui.button('Terminate', icon='close', on_click=self.close_file).props('flat text-color=grey id=btn-close')
+                ui.button('Secure Records', icon='save', on_click=self.save_file).props('unelevated color=primary id=btn-save')
                 ui.select(options=self.available_templates, value=self.active_pdf_template, on_change=lambda e: setattr(self, 'active_pdf_template', e.value)).props('flat dense options-dark').classes('text-caption opacity-70 w-24')
-                ui.button('PDF', icon='picture_as_pdf', on_click=self.print_pdf).props('unelevated color=secondary id=btn-pdf')
+                ui.button('Export PDF', icon='picture_as_pdf', on_click=self.print_pdf).props('unelevated color=secondary id=btn-pdf')
         
         editor_card_classes = 'w-full q-pa-none'
         if not self.internal_scroll:
