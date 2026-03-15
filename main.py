@@ -1,5 +1,5 @@
 from nicegui import ui, app
-from components.navbar import create_navbar
+from components.editor import Editor
 from components.editor import Editor
 from components.dialogs import ModalSystem
 from logic.file_manager import FileManager
@@ -51,11 +51,6 @@ class ChronosApp:
             ui.add_head_html(read_template('base_head.html'))
             ui.add_head_html(read_template('editor_head.html'))
             
-            create_navbar()
-            
-            with ui.left_drawer(value=True).props('bordered').classes('bg-[#0f172a]'):
-                self._render_sidebar()
-            
             with ui.column().classes('w-full q-pa-lg bg-[#0f172a] min-h-screen'):
                 self.browser_view = ui.column().classes('w-full q-gutter-md')
                 self.browser_view.visible = True
@@ -67,22 +62,6 @@ class ChronosApp:
                 with self.editor_view:
                     self._render_editor_view()
 
-    def _render_sidebar(self):
-        with ui.column().classes('q-pa-md w-full q-gutter-md'):
-            with ui.column().classes('q-gutter-xs'):
-                ui.label('REPOSITORIES').classes('text-overline opacity-60')
-                ui.button('Scegli Root', icon='folder_open', on_click=self.open_root_picker).props('flat dense color=primary')
-                
-                self.root_badge = ui.row().classes('items-center q-pa-sm rounded-borders text-primary cursor-pointer') \
-                    .style('background: rgba(99, 102, 241, 0.1)') \
-                    .on('click', self.go_to_root)
-                self.root_badge.visible = False
-                with self.root_badge:
-                    ui.icon('folder_special', size='xs')
-                    self.root_label = ui.label('').classes('text-weight-bold truncate')
-        if self.fm:
-            self.root_badge.visible = True
-            self.root_label.set_text(os.path.basename(self.fm.project_root))
 
     def _render_browser_view(self):
         self.browser_view.clear()
@@ -94,9 +73,14 @@ class ChronosApp:
                     ui.button('Seleziona Directory di Lavoro', icon='search', on_click=self.open_root_picker).props('unelevated color=primary')
                 return
 
-            with ui.row().classes('w-full items-center justify-between'):
-                self.breadcrumb_container = ui.row().classes('items-center q-gutter-xs')
-                ui.button('Nuovo File', icon='add', on_click=self.open_new_file_dialog).props('unelevated color=primary')
+            with ui.row().classes('w-full items-center justify-between q-mb-md'):
+                with ui.row().classes('items-center q-gutter-md'):
+                    ui.label('MK-PDF').classes('text-h5 text-weight-bold text-primary')
+                    self.breadcrumb_container = ui.row().classes('items-center q-gutter-xs')
+                
+                with ui.row().classes('q-gutter-sm'):
+                    ui.button('Cambia Root', icon='folder_open', on_click=self.open_root_picker).props('flat dense color=primary')
+                    ui.button('Nuovo File', icon='add', on_click=self.open_new_file_dialog).props('unelevated color=primary')
             
             with ui.card().props('bordered flat').classes('w-full q-pa-none bg-[#0f172a]'):
                 with ui.row().classes('w-full q-pa-sm bg-[#1e293b] items-center text-overline'):
