@@ -6,7 +6,7 @@ class GotenbergClient:
     def __init__(self, host='http://localhost:3000'):
         self.host = host
 
-    def convert_markdown(self, md_content):
+    def convert_markdown(self, md_content, header_html=None, footer_html=None):
         # Convert MD to HTML with Tailwind/Mermaid support
         html_content = self._wrap_html(md_content)
         
@@ -18,25 +18,23 @@ class GotenbergClient:
 
             url = f'{self.host}/forms/chromium/convert/html'
 
-            # Carichiamo il template del footer
-            footer_path = os.path.join(os.path.dirname(__file__), '..', 'templates', 'pdf_footer.html')
-            with open(footer_path, 'r') as f_footer:
-                footer_content = f_footer.read()
-
             with open(temp_html, 'rb') as f:
-                files = {
-                    'index.html': ('index.html', f, 'text/html'),
-                    'footer.html': ('footer.html', footer_content, 'text/html')
-                }
+                files = { 'index.html': ('index.html', f, 'text/html') }
+                
+                if header_html:
+                    files['header.html'] = ('header.html', header_html, 'text/html')
+                if footer_html:
+                    files['footer.html'] = ('footer.html', footer_html, 'text/html')
+
                 data = {
                     'waitDelay': '2s',
-                    'displayHeaderFooter': 'true',
+                    'displayHeaderFooter': 'true' if (header_html or footer_html) else 'false',
                     'paperWidth': '8.27', 
                     'paperHeight': '11.69',
-                    'marginTop': '1in',
-                    'marginBottom': '1in',
-                    'marginLeft': '1in',
-                    'marginRight': '1in'
+                    'marginTop': '0.7in' if header_html else '0.5in',
+                    'marginBottom': '0.7in' if footer_html else '0.5in',
+                    'marginLeft': '0.7in',
+                    'marginRight': '0.7in'
                 }
 
                 response = requests.post(url, files=files, data=data)

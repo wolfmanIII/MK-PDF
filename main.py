@@ -34,6 +34,9 @@ class ChronosApp:
         self.current_file = None
         self.current_dir = self.fm.project_root if self.fm else USER_HOME
         
+        self.active_pdf_template = 'industrial'
+        self.available_templates = ['clean', 'industrial']
+        
         # UI Elements
         self.file_list_container = None
         self.breadcrumb_container = None
@@ -97,6 +100,7 @@ class ChronosApp:
                 self.editor_breadcrumb_container = ui.row().classes('items-center q-gutter-xs')
             
             with ui.row().classes('q-gutter-sm items-center'):
+                ui.select(options=self.available_templates, v_model=self.active_pdf_template, on_change=lambda e: setattr(self, 'active_pdf_template', e.value)).props('flat dense options-dark').classes('text-caption opacity-70 w-24')
                 ui.button(icon='fullscreen', on_click=lambda: ui.run_javascript('if(window.MKEditor) window.MKEditor.instance.toggleFullScreen()')).props('flat color=primary id=btn-fullscreen').tooltip('Fullscreen')
                 ui.button('Chiudi', icon='close', on_click=self.close_file).props('flat text-color=grey id=btn-close')
                 ui.button('Salva', icon='save', on_click=self.save_file).props('unelevated color=primary id=btn-save')
@@ -202,11 +206,24 @@ class ChronosApp:
         ui.notify('Generazione PDF in corso...', spinner=True)
         try:
             content = await self.editor.get_content()
-            pdf_bytes = await asyncio.to_thread(self.client.convert_markdown, content)
+            
+            # Caricamento template dinamico
+            template_path = os.path.join(os.path.dirname(__file__), 'templates', 'export', self.active_pdf_template)
+            header_html = None
+            footer_html = None
+            
+            h_file = os.path.join(template_path, 'header.html')
+            f_file = os.path.join(template_path, 'footer.html')
+            
+            if os.path.exists(h_file):
+                with open(h_file, 'r') as f: header_html = f.read()
+            if os.path.exists(f_file):
+                with open(f_file, 'r') as f: footer_html = f.read()
+
+            pdf_bytes = await asyncio.to_thread(self.client.convert_markdown, content, header_html, footer_html)
             if pdf_bytes:
                 pdf_cache['latest'] = pdf_bytes
                 ui.notify('PDF pronto', type='positive')
-                # Riga corretta
                 await ui.run_javascript('window.open("/pdf_preview?t=" + Date.now(), "_blank"); null;')
             else:
                 ui.notify('Errore nella conversione PDF', type='negative')
