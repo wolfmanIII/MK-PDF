@@ -236,6 +236,26 @@
                         title: "Side by Side"
                     }
                 ],
+                // Keyboard Shortcuts Integration
+                shortcuts: {
+                    "toggleFullScreen": null, // Disable default to use ours
+                    "drawTable": null
+                },
+                extraKeys: {
+                    "Ctrl-S": (cm) => { document.getElementById('btn-save')?.click(); },
+                    "Cmd-S": (cm) => { document.getElementById('btn-save')?.click(); },
+                    "Ctrl-P": (cm) => { document.getElementById('btn-pdf')?.click(); },
+                    "Cmd-P": (cm) => { document.getElementById('btn-pdf')?.click(); },
+                    "Ctrl-F": (cm) => { document.getElementById('btn-fullscreen')?.click(); },
+                    "Cmd-F": (cm) => { document.getElementById('btn-fullscreen')?.click(); },
+                    "Esc": (cm) => { 
+                        if (cm.getOption("fullScreen")) {
+                             cm.setOption("fullScreen", false);
+                        } else {
+                             document.getElementById('btn-close')?.click();
+                        }
+                    }
+                },
                 previewRender: function (t, p) {
                     const html = this.parent.markdown(t);
                     setTimeout(() => window.MKEditor.renderMermaid(p), 100);
@@ -277,6 +297,35 @@
             });
         }
     };
+
+    // Global listener for when editor is NOT focused
+    document.addEventListener('keydown', function(e) {
+        if (e.ctrlKey || e.metaKey) {
+            const key = e.key.toLowerCase();
+            if (key === 's') {
+                e.preventDefault();
+                document.getElementById('btn-save')?.click();
+            }
+            if (key === 'p') {
+                e.preventDefault();
+                document.getElementById('btn-pdf')?.click();
+            }
+            if (key === 'f') {
+                e.preventDefault();
+                document.getElementById('btn-fullscreen')?.click();
+            }
+        }
+        
+        if (e.key === 'Escape') {
+            // Only trigger Close if NOT in fullscreen and NOT inside a dialog
+            const isFullscreen = window.MKEditor.instance && window.MKEditor.instance.isFullscreenActive();
+            const inDialog = !!document.querySelector('.q-dialog');
+            if (!isFullscreen && !inDialog) {
+                document.getElementById('btn-close')?.click();
+            }
+        }
+    });
+
     setInterval(() => {
         if (document.getElementById('chronos-editor') && !window.MKEditor.instance) window.MKEditor.init();
     }, 1000);
