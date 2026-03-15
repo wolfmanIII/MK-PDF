@@ -39,11 +39,6 @@ class ChronosApp:
         self.file_list_container = None
         self.breadcrumb_container = None
         self.editor_breadcrumb_container = None
-        
-        # Header Controls
-        self.header_row = None
-        self.browser_controls = None
-        self.editor_controls = None
 
     def start(self):
         @ui.page('/')
@@ -55,40 +50,16 @@ class ChronosApp:
             ui.add_head_html(read_template('base_head.html'))
             ui.add_head_html(read_template('editor_head.html'))
             
-            with ui.column().classes('w-full q-pa-lg bg-[#0f172a] min-h-screen items-center'):
-                with ui.column().classes('w-full max-w-5xl q-gutter-md'):
-                    # --- Unified Header ---
-                    with ui.row().classes('w-full items-center justify-between q-pa-md bg-[#1e293b] rounded-borders'):
-                        with ui.row().classes('items-center q-gutter-md'):
-                            ui.label('MK-PDF').classes('text-h5 text-weight-bold text-primary cursor-pointer').on('click', self.go_to_root)
-                            self.shared_breadcrumb = ui.row().classes('items-center q-gutter-xs')
-                        
-                        # Contextual Controls
-                        with ui.row().classes('q-gutter-sm'):
-                            # Browser Controls
-                            self.browser_controls = ui.row().classes('q-gutter-sm')
-                            with self.browser_controls:
-                                ui.button('Cambia Root', icon='folder_open', on_click=self.open_root_picker).props('flat dense color=primary')
-                                ui.button('Nuovo File', icon='add', on_click=self.open_new_file_dialog).props('unelevated color=primary')
-                            
-                            # Editor Controls
-                            self.editor_controls = ui.row().classes('q-gutter-sm')
-                            self.editor_controls.visible = False
-                            with self.editor_controls:
-                                ui.button(icon='fullscreen', on_click=lambda: ui.run_javascript('if(window.MKEditor) window.MKEditor.instance.toggleFullScreen()')).props('flat round color=primary')
-                                ui.button('Salva', icon='save', on_click=self.save_file).props('unelevated color=primary')
-                                ui.button('PDF', icon='picture_as_pdf', on_click=self.print_pdf).props('unelevated color=secondary')
-                                ui.button('Chiudi', icon='close', on_click=self.close_file).props('flat text-color=grey')
-
-                    self.browser_view = ui.column().classes('w-full q-gutter-md')
-                    self.browser_view.visible = True
-                    with self.browser_view:
-                        self._render_browser_view()
-                    
-                    self.editor_view = ui.column().classes('w-full').style('height: calc(100vh - 180px)')
-                    self.editor_view.visible = False
-                    with self.editor_view:
-                        self._render_editor_view()
+            with ui.column().classes('w-full q-pa-lg bg-[#0f172a] min-h-screen'):
+                self.browser_view = ui.column().classes('w-full q-gutter-md')
+                self.browser_view.visible = True
+                with self.browser_view:
+                    self._render_browser_view()
+                
+                self.editor_view = ui.column().classes('w-full').style('height: calc(100vh - 150px)')
+                self.editor_view.visible = False
+                with self.editor_view:
+                    self._render_editor_view()
 
 
     def _render_browser_view(self):
@@ -101,6 +72,14 @@ class ChronosApp:
                     ui.button('Seleziona Directory di Lavoro', icon='search', on_click=self.open_root_picker).props('unelevated color=primary')
                 return
 
+            with ui.row().classes('w-full items-center justify-between q-mb-md'):
+                with ui.row().classes('items-center q-gutter-md'):
+                    ui.label('MK-PDF').classes('text-h5 text-weight-bold text-primary')
+                    self.breadcrumb_container = ui.row().classes('items-center q-gutter-xs')
+                
+                with ui.row().classes('q-gutter-sm'):
+                    ui.button('Cambia Root', icon='folder_open', on_click=self.open_root_picker).props('flat dense color=primary')
+                    ui.button('Nuovo File', icon='add', on_click=self.open_new_file_dialog).props('unelevated color=primary')
             
             with ui.card().props('bordered flat').classes('w-full q-pa-none bg-[#0f172a]'):
                 with ui.row().classes('w-full q-pa-sm bg-[#1e293b] items-center text-overline'):
@@ -113,6 +92,15 @@ class ChronosApp:
             self.update_ui()
 
     def _render_editor_view(self):
+        with ui.row().classes('w-full q-pa-md items-center justify-between bg-[#1e293b] rounded-borders q-mb-md'):
+            with ui.row().classes('items-center q-gutter-sm'):
+                ui.icon('edit_note', size='sm', color='primary').classes('opacity-50')
+                self.editor_breadcrumb_container = ui.row().classes('items-center q-gutter-xs')
+            
+            with ui.row().classes('q-gutter-sm'):
+                ui.button('Chiudi', icon='close', on_click=self.close_file).props('flat text-color=grey')
+                ui.button('Salva', icon='save', on_click=self.save_file).props('unelevated color=primary')
+                ui.button('PDF', icon='picture_as_pdf', on_click=self.print_pdf).props('unelevated color=secondary')
         
         with ui.card().props('flat bordered').classes('w-full col-grow q-pa-none'):
             self.editor.create()
@@ -122,7 +110,7 @@ class ChronosApp:
     def update_ui(self):
         if not self.fm: return
         self._update_file_list()
-        self._update_breadcrumbs(self.shared_breadcrumb, self.current_dir)
+        self._update_breadcrumbs(self.breadcrumb_container, self.current_dir)
 
     def _update_file_list(self):
         self.file_list_container.clear()
@@ -190,18 +178,17 @@ class ChronosApp:
     async def load_file(self, path):
         self.current_file = path
         content = self.fm.read_file(path)
+        self.browser_view.visible = False
+        self.editor_view.visible = True
+        await asyncio.sleep(0.1) 
         await ui.run_javascript('if (window.MKEditor) window.MKEditor.init()')
         self.editor.set_content(content)
-        self.browser_controls.visible = False
-        self.editor_controls.visible = True
-        self._update_breadcrumbs(self.shared_breadcrumb, os.path.dirname(path), True)
+        self._update_breadcrumbs(self.editor_breadcrumb_container, os.path.dirname(path), True)
 
     def close_file(self):
         self.current_file = None
         self.browser_view.visible = True
         self.editor_view.visible = False
-        self.browser_controls.visible = True
-        self.editor_controls.visible = False
         self.update_ui()
 
     async def save_file(self):
