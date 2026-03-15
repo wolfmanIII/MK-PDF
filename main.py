@@ -1,6 +1,5 @@
 from nicegui import ui, app
 from components.editor import Editor
-from components.editor import Editor
 from components.dialogs import ModalSystem
 from logic.file_manager import FileManager
 from logic.converter import GotenbergClient
@@ -98,10 +97,10 @@ class ChronosApp:
                 self.editor_breadcrumb_container = ui.row().classes('items-center q-gutter-xs')
             
             with ui.row().classes('q-gutter-sm items-center'):
-                ui.button(icon='fullscreen', on_click=lambda: ui.run_javascript('if(window.MKEditor) window.MKEditor.instance.toggleFullScreen()')).props('flat color=primary').tooltip('Fullscreen').id('btn-fullscreen')
-                ui.button('Chiudi', icon='close', on_click=self.close_file).props('flat text-color=grey').id('btn-close')
-                ui.button('Salva', icon='save', on_click=self.save_file).props('unelevated color=primary').id('btn-save')
-                ui.button('PDF', icon='picture_as_pdf', on_click=self.print_pdf).props('unelevated color=secondary').id('btn-pdf')
+                ui.button(icon='fullscreen', on_click=lambda: ui.run_javascript('if(window.MKEditor) window.MKEditor.instance.toggleFullScreen()')).props('flat color=primary id=btn-fullscreen').tooltip('Fullscreen')
+                ui.button('Chiudi', icon='close', on_click=self.close_file).props('flat text-color=grey id=btn-close')
+                ui.button('Salva', icon='save', on_click=self.save_file).props('unelevated color=primary id=btn-save')
+                ui.button('PDF', icon='picture_as_pdf', on_click=self.print_pdf).props('unelevated color=secondary id=btn-pdf')
         
         with ui.card().props('flat bordered').classes('w-full col-grow q-pa-none'):
             self.editor.create()
