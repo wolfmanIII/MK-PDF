@@ -97,8 +97,8 @@ class ChronosApp:
                 ui.icon('edit_note', size='sm', color='primary').classes('opacity-50')
                 self.editor_breadcrumb_container = ui.row().classes('items-center q-gutter-xs')
             
-            with ui.row().classes('q-gutter-sm'):
-                ui.button(icon='fullscreen', on_click=lambda: ui.run_javascript('if(window.MKEditor) window.MKEditor.instance.toggleFullScreen()')).props('flat round color=primary').tooltip('Fullscreen')
+            with ui.row().classes('q-gutter-sm items-center'):
+                ui.button(icon='fullscreen', on_click=lambda: ui.run_javascript('if(window.MKEditor) window.MKEditor.instance.toggleFullScreen()')).props('flat color=primary').tooltip('Fullscreen')
                 ui.button('Chiudi', icon='close', on_click=self.close_file).props('flat text-color=grey')
                 ui.button('Salva', icon='save', on_click=self.save_file).props('unelevated color=primary')
                 ui.button('PDF', icon='picture_as_pdf', on_click=self.print_pdf).props('unelevated color=secondary')
