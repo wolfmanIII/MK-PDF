@@ -39,7 +39,6 @@ class ChronosApp:
         self.file_list_container = None
         self.breadcrumb_container = None
         self.editor_breadcrumb_container = None
-        self.root_label = None
 
     def start(self):
         @ui.page('/')
@@ -243,8 +242,6 @@ class ChronosApp:
     def _on_root_selected(self, path, dialog):
         self.fm = FileManager(path)
         self.current_dir = path
-        self.root_badge.visible = True
-        self.root_label.set_text(os.path.basename(path))
         self._render_browser_view()
         dialog.close()
 
