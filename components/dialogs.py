@@ -81,31 +81,38 @@ class ModalSystem:
                             update_ui()
                         ui.label(part).classes('cursor-pointer text-primary text-weight-medium').on('click', mk_go)
 
-                # Lista items stile Quasar
-                with ui.scroll_area().style('height: 300px; width: 100%').classes('border border-white/10 q-mt-md bg-[#0f172a]'):
+                # Lista items stile Premium
+                with ui.scroll_area().style('height: 350px; width: 100%').classes('q-mt-md bg-[#0f172a] rounded-borders'):
                     items = navigate_logic(state['path'])
-                    with ui.list().props('bordered separator'):
-                        # Il pulsante "torna indietro" appare solo se non siamo già nel min_root
+                    with ui.column().classes('w-full q-pa-sm q-gutter-xs'):
+                        # Il pulsante "torna indietro"
                         if state['path'] != min_root:
                             parent = os.path.dirname(state['path'])
-                            with ui.item(on_click=lambda: (state.update({'path': parent}), update_ui())).props('clickable'):
-                                with ui.item_section().props('avatar'):
-                                    ui.icon('arrow_back', color='grey')
-                                with ui.item_section():
-                                    ui.label('.. (Torna Su)').classes('opacity-60')
+                            with ui.row().classes('w-full q-pa-sm items-center cursor-pointer hover:bg-white/5 rounded-borders transition-colors group') \
+                                .on('click', lambda: (state.update({'path': parent}), update_ui())):
+                                ui.icon('folder_open', color='grey-5', size='sm').classes('opacity-60 group-hover:opacity-100')
+                                ui.label('.. / Parent Directory').classes('text-caption opacity-40 group-hover:opacity-80')
 
                         for item in items:
                             if item['is_dir']:
-                                with ui.item(on_click=lambda p=item['path']: (state.update({'path': p}), update_ui())).props('clickable'):
-                                    with ui.item_section().props('avatar'):
-                                        ui.icon('folder', color='warning')
-                                    with ui.item_section():
-                                        ui.label(item['name']).classes('text-weight-bold')
+                                with ui.row().classes('w-full q-pa-md items-center cursor-pointer hover:bg-primary/10 rounded-borders transition-colors group border-b border-white/5') \
+                                    .on('click', lambda p=item['path']: (state.update({'path': p}), update_ui())):
+                                    
+                                    with ui.row().classes('items-center q-gutter-md col-grow'):
+                                        ui.icon('folder', color='warning', size='md').classes('group-hover:scale-110 transition-transform')
+                                        with ui.column().classes('q-gutter-none'):
+                                            ui.label(item['name']).classes('text-weight-bold text-white')
+                                            ui.label('Sottocartella di sistema').classes('text-caption opacity-40')
+                                    
+                                    ui.icon('chevron_right', color='grey-5').classes('opacity-0 group-hover:opacity-100 transition-opacity')
 
                 # Input percorso
-                with ui.column().classes('w-full q-mt-md q-gutter-sm'):
-                    ui.label('PERCORSO MANUALE').classes('text-overline text-primary')
-                    path_input = ui.input(value=state['path']).props('outlined dense color=primary').classes('w-full')
+                with ui.column().classes('w-full q-mt-lg q-gutter-sm'):
+                    ui.label('LOCALIZZAZIONE MANUALE').classes('text-overline text-primary letter-spacing-1')
+                    with ui.input(value=state['path']).props('outlined dense color=primary bg-color=slate-900').classes('w-full shadow-inner') as path_input:
+                        with path_input.add_slot('prepend'):
+                            ui.icon('place', size='xs')
+                    
                     def on_path_change(e):
                         new_p = os.path.abspath(e.value)
                         if new_p.startswith(min_root):
