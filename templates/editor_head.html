@@ -178,8 +178,10 @@
         visibility: hidden !important;
     }
 
-    /* Hide redundant internal buttons */
-    .editor-toolbar .fa-arrows-alt {
+    /* Hide redundant internal buttons and the 'ghost' exit button */
+    .editor-toolbar .fa-arrows-alt,
+    .editor-toolbar .fa-compress,
+    .editor-toolbar .fa-question-circle {
         display: none !important;
     }
 </style>
@@ -211,8 +213,7 @@
                         },
                         className: "fa fa-columns",
                         title: "Side by Side"
-                    },
-                    "fullscreen", "|", "guide"
+                    }
                 ],
                 previewRender: function (t, p) {
                     const html = this.parent.markdown(t);
