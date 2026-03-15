@@ -53,7 +53,7 @@ class ChronosApp:
 
     def start(self):
         @ui.page('/')
-        def main_page():
+        async def main_page():
             ui.dark_mode().enable()
             # Tema "Umano": Slate & Indigo (Più morbido e professionale)
             ui.colors(primary='#6366f1', secondary='#1e293b', accent='#818cf8')
@@ -65,15 +65,18 @@ class ChronosApp:
                 self.browser_view = ui.column().classes('w-full q-pa-lg q-gutter-md')
                 self.browser_view.visible = True
                 with self.browser_view:
-                    self._render_browser_view()
+                    await self._render_browser_view()
                 
                 self.editor_view = ui.column().classes('w-full')
                 self.editor_view.visible = False
                 with self.editor_view:
-                    self._render_editor_view()
+                    await self._render_editor_view()
+            
+            # Caricamento iniziale
+            ui.timer(0.1, self.update_ui, once=True)
 
 
-    def _render_browser_view(self):
+    async def _render_browser_view(self):
         self.browser_view.clear()
         with self.browser_view:
             if not self.fm:
@@ -114,9 +117,9 @@ class ChronosApp:
                 
                 self.file_list_container = ui.column().classes('w-full')
             
-            self.update_ui()
+            await self.update_ui()
 
-    def _render_editor_view(self):
+    async def _render_editor_view(self):
         header_classes = 'w-full q-pa-md items-center justify-between bg-[#1e293b] z-50 shadow-lg'
         if not self.internal_scroll:
             header_classes += ' sticky top-0'
@@ -151,18 +154,18 @@ class ChronosApp:
 
     # --- UI Logic ---
 
-    def update_ui(self):
+    async def update_ui(self):
         if not self.fm: return
         if self.is_searching:
-            self._update_search_results()
+            await self._update_search_results()
         else:
-            self._update_file_list()
+            await self._update_file_list()
         self._update_breadcrumbs(self.breadcrumb_container, self.current_dir)
 
-    def _update_file_list(self):
+    async def _update_file_list(self):
         self.file_list_container.clear()
         try:
-            items = self.fm.list_items(self.current_dir)
+            items = await self.fm.list_items(self.current_dir)
             with self.file_list_container:
                 if self.current_dir != self.fm.project_root:
                     parent = os.path.dirname(self.current_dir)
@@ -208,9 +211,9 @@ class ChronosApp:
                 
                 ui.label(match['excerpt']).classes('text-caption text-grey-4 truncate-2-lines q-pl-md border-l-2 border-primary/20')
 
-    def _update_search_results(self):
+    async def _update_search_results(self):
         self.file_list_container.clear()
-        results = self.fm.search_content(self.search_query)
+        results = await self.fm.search_content(self.search_query)
         
         with self.file_list_container:
             if not results:
@@ -244,13 +247,13 @@ class ChronosApp:
 
     # --- Actions ---
 
-    def go_to_dir(self, path):
+    async def go_to_dir(self, path):
         self.current_dir = path
-        self.update_ui()
+        await self.update_ui()
 
-    def go_to_root(self):
+    async def go_to_root(self):
         self.close_file()
-        self.go_to_dir(self.fm.project_root)
+        await self.go_to_dir(self.fm.project_root)
 
     def toggle_scroll_mode(self):
         self.internal_scroll = not self.internal_scroll
@@ -270,20 +273,20 @@ class ChronosApp:
             self.scroll_toggle_btn.props('icon=unfold_more')
             ui.notify('Focus su Pagina (Header Sticky)', color='primary')
 
-    def on_search_change(self, e):
+    async def on_search_change(self, e):
         self.search_query = e.value
         self.is_searching = len(self.search_query) >= 2
-        self.update_ui()
+        await self.update_ui()
 
-    def clear_search(self):
+    async def clear_search(self):
         self.search_input.value = ""
         self.search_query = ""
         self.is_searching = False
-        self.update_ui()
+        await self.update_ui()
 
     async def load_file(self, path):
         self.current_file = path
-        content = self.fm.read_file(path)
+        content = await self.fm.read_file(path)
         self.browser_view.visible = False
         self.editor_view.visible = True
         await asyncio.sleep(0.1) 
@@ -300,7 +303,7 @@ class ChronosApp:
     async def save_file(self):
         if not self.current_file: return
         content = await self.editor.get_content()
-        self.fm.save_file(self.current_file, content)
+        await self.fm.save_file(self.current_file, content)
         ui.notify('Dati salvati', type='positive')
 
     async def print_pdf(self):
@@ -337,19 +340,19 @@ class ChronosApp:
     def open_new_file_dialog(self):
         async def on_create(name, dialog):
             try:
-                path = self.fm.create_markdown(self.current_dir, name)
+                path = await self.fm.create_markdown(self.current_dir, name)
                 dialog.close()
                 await self.load_file(path)
             except Exception as e: ui.notify(str(e), type='negative')
         ModalSystem.show_new_file_dialog(on_create)
 
     def open_confirm_delete(self, path):
-        def on_confirm(dialog):
+        async def on_confirm(dialog):
             try:
-                self.fm.delete_item(path)
+                await self.fm.delete_item(path)
                 ui.notify("Epurato")
                 dialog.close()
-                self.update_ui()
+                await self.update_ui()
                 if self.current_file == path: self.close_file()
             except Exception as e: ui.notify(str(e), type='negative')
         ModalSystem.confirm_delete(os.path.basename(path), on_confirm)
@@ -358,11 +361,11 @@ class ChronosApp:
         start_dir = self.current_dir if self.fm else USER_HOME
         ModalSystem.folder_picker_dialog(start_dir, USER_HOME, self._on_root_selected, self.fm.list_items if self.fm else FileManager(USER_HOME).list_items)
 
-    def _on_root_selected(self, path, dialog):
+    async def _on_root_selected(self, path, dialog):
         self.fm = FileManager(path)
         self.git = GitManager(path)
         self.current_dir = path
-        self._render_browser_view()
+        await self._render_browser_view()
         dialog.close()
 
     def open_checkpoint_dialog(self):
