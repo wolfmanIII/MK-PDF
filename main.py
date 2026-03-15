@@ -2,6 +2,7 @@ from nicegui import ui, app
 from components.editor import Editor
 from components.dialogs import ModalSystem
 from logic.file_manager import FileManager
+from logic.git_manager import GitManager
 from logic.converter import GotenbergClient
 from fastapi import Response
 import os
@@ -28,6 +29,7 @@ def read_template(filename):
 class ChronosApp:
     def __init__(self):
         self.fm = FileManager(PROJECT_ROOT) if PROJECT_ROOT else None
+        self.git = GitManager(PROJECT_ROOT) if PROJECT_ROOT else None
         self.editor = Editor()
         self.client = GotenbergClient(GOTENBERG_URL)
         
@@ -80,6 +82,11 @@ class ChronosApp:
                     self.breadcrumb_container = ui.row().classes('items-center q-gutter-xs')
                 
                 with ui.row().classes('q-gutter-sm'):
+                    if self.git and self.git.is_repo():
+                        ui.button('Checkpoint', icon='history', on_click=self.open_checkpoint_dialog).props('flat dense color=accent')
+                    elif self.git:
+                        ui.button('Inizializza Git', icon='git', on_click=self.init_git_repo).props('flat dense color=grey')
+                        
                     ui.button('Cambia Root', icon='folder_open', on_click=self.open_root_picker).props('flat dense color=primary')
                     ui.button('Nuovo File', icon='add', on_click=self.open_new_file_dialog).props('unelevated color=primary')
             
@@ -258,9 +265,32 @@ class ChronosApp:
 
     def _on_root_selected(self, path, dialog):
         self.fm = FileManager(path)
+        self.git = GitManager(path)
         self.current_dir = path
         self._render_browser_view()
         dialog.close()
+
+    def open_checkpoint_dialog(self):
+        async def on_confirm(message, dialog):
+            if not message:
+                ui.notify('Inserire un messaggio per il checkpoint', type='warning')
+                return
+            
+            success, result = self.git.create_checkpoint(message)
+            if success:
+                ui.notify(result, color='positive')
+                dialog.close()
+            else:
+                ui.notify(result, color='negative')
+        
+        ModalSystem.show_checkpoint_dialog(on_confirm)
+
+    def init_git_repo(self):
+        if self.git.init_repo():
+            ui.notify('Repository Git inizializzato', color='positive')
+            self._render_browser_view()
+        else:
+            ui.notify('Errore durante l\'inizializzazione Git', color='negative')
 
 app_obj = ChronosApp()
 app_obj.start()

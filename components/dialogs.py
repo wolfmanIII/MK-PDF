@@ -20,6 +20,22 @@ class ModalSystem:
         dialog.open()
 
     @staticmethod
+    def show_checkpoint_dialog(on_confirm):
+        with ui.dialog() as dialog, ui.card().classes('q-pa-none overflow-hidden bg-[#0f172a]').style('width: 450px'):
+            with ui.column().classes('w-full q-pa-md bg-accent text-white'):
+                ui.label('CHECKPOINT').classes('text-h6 text-weight-bold')
+                ui.label('Registrazione stato nel registro storico (Git)').classes('text-caption opacity-80 text-uppercase')
+                
+            with ui.column().classes('q-pa-lg w-full q-gutter-md'):
+                ui.label('MESSAGGIO DI LOG').classes('text-overline text-accent')
+                msg_input = ui.input(placeholder='Cosa hai fatto in questa sessione?').props('outlined autofocus color=accent').classes('w-full')
+                
+                with ui.row().classes('w-full justify-end q-gutter-sm q-pt-md'):
+                    ui.button('Annulla', on_click=dialog.close).props('flat color=grey')
+                    ui.button('Crea Checkpoint', on_click=lambda: on_confirm(msg_input.value, dialog)).props('unelevated color=accent').classes('q-px-md')
+        dialog.open()
+
+    @staticmethod
     def confirm_delete(filename, on_confirm):
         with ui.dialog() as dialog, ui.card().classes('q-pa-none overflow-hidden bg-[#0f172a]').style('width: 400px'):
             with ui.row().classes('q-pa-md bg-negative text-white items-center'):
