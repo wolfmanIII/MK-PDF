@@ -127,9 +127,10 @@ class ChronosApp:
             
             with ui.row().classes('q-gutter-sm items-center'):
                 # Toggle Scroll Mode
-                ui.button(icon='unfold_more', on_click=self.toggle_scroll_mode) \
+                icon = 'unfold_less' if self.internal_scroll else 'unfold_more'
+                self.scroll_toggle_btn = ui.button(icon=icon, on_click=self.toggle_scroll_mode) \
                     .props('flat dense color=primary') \
-                    .tooltip('Attiva/Disattiva Scroll Interno') \
+                    .tooltip('Cambia modalità di scorrimento') \
                     .classes('opacity-50 hover:opacity-100')
                 
                 ui.button(icon='fullscreen', on_click=lambda: ui.run_javascript('if(window.MKEditor) window.MKEditor.instance.toggleFullScreen()')).props('flat color=primary id=btn-fullscreen').tooltip('Fullscreen')
@@ -254,15 +255,19 @@ class ChronosApp:
         self.internal_scroll = not self.internal_scroll
         
         if self.internal_scroll:
+            # Modalità Editor (Fisso)
             self.editor_header.classes(remove='sticky top-0')
             self.editor_container.style('height: calc(100vh - 100px)')
             self.editor_card.classes(remove='q-mt-md')
+            self.scroll_toggle_btn.props('icon=unfold_less')
+            ui.notify('Focus su Editor (Scroll Interno)', color='primary')
         else:
+            # Modalità Pagina (Sticky)
             self.editor_header.classes(add='sticky top-0')
-            self.editor_container.style('height: auto') # Resets the fixed height
+            self.editor_container.style('height: auto')
             self.editor_card.classes(add='q-mt-md')
-            
-        ui.notify('Scroll interno ' + ('attivo' if self.internal_scroll else 'disattivato'))
+            self.scroll_toggle_btn.props('icon=unfold_more')
+            ui.notify('Focus su Pagina (Header Sticky)', color='primary')
 
     def on_search_change(self, e):
         self.search_query = e.value
