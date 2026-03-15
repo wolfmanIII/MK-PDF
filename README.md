@@ -6,11 +6,13 @@
 
 ## 🛠️ Key Features
 
-- **Industrial Editor**: Powered by EasyMDE, providing a clean, distraction-free Markdown experience.
-- **Deep Space Aesthetics**: Uses the `Abyss` design system for a high-contrast, professional dark mode.
+- **Industrial Editor**: Powered by EasyMDE, providing a clean, distraction-free Markdown experience with professional **Hotkeys** (Ctrl+S, Ctrl+P, Ctrl+F).
+- **Deep Space Aesthetics**: Uses the `Human Slate` design system (Zen Mode) for a minimalist, high-contrast dark mode.
+- **Local Versioning**: Integrated **Git Abstraction** for simplified document checkpoints and history management.
+- **Global Search**: High-speed, recursive full-text search across the entire workspace.
 - **Data Visualization**: Native support for **Mermaid.js** diagrams, rendered directly into your documents and PDFs.
-- **Professional PDF Output**: Seamless integration with Gotenberg (Chromium) for pixel-perfect A4 documents with automatic page numbering and standard industry margins.
-- **Fileless Pipeline**: All PDF previews are streamed directly from memory (RAM) through a custom FastAPI bridge, leaving zero temporary files on your local storage.
+- **Professional PDF Output**: Support for multiple templates (`clean`, `industrial`) with automatic page numbering and professional headers/footers.
+- **Adaptive UI**: Switch between **Page Focus** (sticky header) and **Editor Focus** (internal scroll) to suit your workflow.
 
 ---
 
@@ -46,10 +48,10 @@ pipenv run python main.py /percorso/alla/tua/cartella
 - **Breadcrumb Navigation**: Easily jump between subfolders of any local project.
 
 - `main.py`: Core orchestrator and FastAPI server.
-- `logic/converter.py`: Gotenberg integration and in-memory streaming logic.
-- `components/`: UI modules (Navbar, Sidebar, Editor).
-- `static/js/`: Modularized JavaScript assets for theme and editor lifecycle.
-- `templates/`: Clean HTML/CSS templates for web and PDF rendering.
+- `logic/`: Business logic for file management, Git abstraction, and PDF conversion.
+- `components/`: Modular UI components (Editor, Dialogs).
+- `static/`: Frontend assets (JavaScript, CSS).
+- `templates/`: HTML/CSS templates for web rendering and PDF exports (Headers/Footers).
 - `docs/`: Technical specifications and system analysis.
 
 ---

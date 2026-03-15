@@ -17,20 +17,20 @@ MK-PDF è un'applicazione web-based modulare scritta in Python, progettata per l
 - **Comunicazione HTTP:** `requests` per il payload verso l'istanza Docker Gotenberg.
 
 ### Frontend & Rendering
-- **Design System:** [DaisyUI](https://daisyui.com/) (Tema `abyss`).
-- **CSS Framework:** Tailwind CSS (via CDN con plugin Typography).
-- **Web Editor:** [EasyMDE](https://github.com/Ionaru/easy-markdown-editor) con logic bridge modulare in `static/js/editor.js`.
-- **Grafici e Diagrammi:** [Mermaid.js](https://mermaid.js.org/) con inizializzazione asincrona.
-- **Asset Management:** Logica JS esternata per massimizzare la velocità di caricamento e la pulizia del DOM.
+- **Design System:** Custom CSS (Human Slate / Zen Mode) basato su variabili statiche e Design Tokens.
+- **Web Editor:** [EasyMDE](https://github.com/Ionaru/easy-markdown-editor) con integrazione di Hotkeys personalizzate e override CodeMirror.
+- **Grafici e Diagrammi:** [Mermaid.js](https://mermaid.js.org/) con inizializzazione asincrona e supporto al rendering PDF.
+- **Template System:** Jinja2-style per l'iniezione dinamica di Header/Footer HTML nei documenti PDF.
 
 ## 3. Architettura dei Componenti (Frontend-Bridges)
 
 Il sistema segue un pattern a componenti per massimizzare la manutenibilità:
 
-1.  **Navbar (`navbar.py`):** Gestisce l'identità visiva e i metadati globali dell'app utilizzando classi DaisyUI puriste (`bg-base-300`, `text-primary`).
-2.  **Sidebar (`sidebar.py`):** Sistema di esplorazione file ricorsivo. Implementa una logica di "Middle-Truncation" per i nomi file lunghi, garantendo la visibilità costante dell'estensione `.md` e fornendo tooltips dinamici per il nome completo.
-3.  **Editor (`editor.py`):** Bridge Python/JS che interfaccia l'app con `static/js/editor.js`. Gestisce il ciclo di vita di EasyMDE e l'iniezione sicura dei dati tramite `window.setMKEditorValue`, garantendo la sincronizzazione anche in caso di latenza del browser.
-4.  **Main App (`main.py`):** Orchestratore dello stato e Server API. Implementa rotte dinamiche FastAPI per lo streaming di asset volatili (PDF) direttamente dalla memoria.
+1.  **Dialogs (`dialogs.py`):** Gestisce tutte le modali (Nuovo File, Delete, Root Picker, Checkpoint) con uno stile premium unificato e feedback Quasar.
+2.  **Git Management (`git_manager.py`):** Abstraction layer su Git che automatizza le procedure di `add` e `commit` tramite il concetto di "Checkpoint".
+3.  **Search Logic (`file_manager.py`):** Algoritmo di scansione ricorsiva asincrona dei file markdown con generazione di indici di contesto line-by-line.
+4.  **Editor (`editor.py`):** Bridge Python/JS per EasyMDE. Gestisce il ciclo di vita dell'editor e la sincronizzazione del contenuto in-memory.
+5.  **Main App (`main.py`):** Orchestratore dello stato (Scroll Mode, Search State) e Server API per PDF streaming.
 
 ## 4. Pipeline di Conversione PDF
 
@@ -53,14 +53,15 @@ Il processo di generazione PDF è gestito dal modulo `logic/converter.py` e segu
 ### Sincronizzazione On-Demand
 Inizialmente progettato con un sistema di sincronizzazione continua (messaggistica JS), il sistema è stato migrato a una sincronizzazione asincrona attivata solo al Save/Print. Questo riduce il carico sulla pipeline di rete locale e previene race conditions durante l'input veloce dell'utente.
 
-### Integrazione Deep-Theme (Abyss)
-La UI non utilizza semplici override di colore, ma sfrutta le variabili CSS esposte da DaisyUI (`var(--b1)`, `var(--p)`, etc.). Questo approccio garantisce che ogni componente, incluso l'editor di terze parti, rispetti matematicamente la palette definita dal brand.
+### Gestione dello Stato UX (Page vs Editor Focus)
+Per bilanciare l'ergonomia su diversi monitor, l'app implementa un toggle di stato per il container dell'editor. In modalità "Focus su Pagina", l'header diventa `sticky` e il container scala con il contenuto. In modalità "Focus su Editor", il container viene bloccato a `100vh` e lo scroll viene delegato internamente. Questo switch avviene senza re-rendering del DOM per preservare il cursore (cursor persistence).
 
-### In-Memory PDF Streaming
-A differenza delle utility standard che creano file di spool, MK-PDF utilizza un approccio "fileless". La pipeline di conversione comunica via streaming con Gotenberg e serve il risultato tramite un buffer RAM. Questo approccio è stato scelto per eliminare frammenti di dati nel volume del progetto e velocizzare l'apertura nel browser attraverso rotte FastAPI dedicate.
+### In-Memory PDF Streaming & Templates
+A differenza delle utility standard che creano file di spool, MK-PDF utilizza un approccio "fileless" integrando Jinja2 per supportare template multipli (`clean`, `industrial`). La pipeline di conversione comunica via streaming con Gotenberg e serve il risultato tramite un buffer RAM. Questo approccio è stato scelto per eliminare frammenti di dati nel volume del progetto e velocizzare l'apertura nel browser attraverso rotte FastAPI dedicate.
 
 ## 6. Limitazioni Conosciute e Sviluppi Futuri
-- **Rendering Offline:** Attualmente lo stack richiede una connessione internet per le CDN di Tailwind e Mermaid. Per una versione "Air-gapped", i file dovrebbero essere serviti localmente.
-- **Multi-Tab:** L'app attualmente visualizza un file alla volta (Design Single-Document Interface).
+- **Rendering Offline:** Supporto locale per Tailwind e Mermaid (attualmente via CDN).
+- **Multi-Tab Mode:** Gestione di più file Markdown aperti simultaneamente.
+- **AI Integration:** Supporto per il completamento contestuale (IUNO API).
 
 ---
