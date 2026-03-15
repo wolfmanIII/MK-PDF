@@ -259,7 +259,7 @@ class ChronosApp:
             self.editor_card.classes(remove='q-mt-md')
         else:
             self.editor_header.classes(add='sticky top-0')
-            self.editor_container.style(remove='height') # Removes the fixed height
+            self.editor_container.style('height: auto') # Resets the fixed height
             self.editor_card.classes(add='q-mt-md')
             
         ui.notify('Scroll interno ' + ('attivo' if self.internal_scroll else 'disattivato'))
