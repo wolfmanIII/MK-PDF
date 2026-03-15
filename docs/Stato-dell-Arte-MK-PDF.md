@@ -24,17 +24,17 @@ La conversione da Markdown a PDF avviene tramite un'architettura a microservizi:
 
 ## 3. Frontend & User Experience (UX)
 
-### 3.1 Design System "Human Slate"
-Abbandonata l'estetica estrema di Abyss Elite, MK-PDF adotta il tema **Human Slate**:
+### 3.1 Design System "Zen Mode" (Human Slate)
+L'evoluzione v3.0 di MK-PDF adotta il paradigma **Zen Mode**, eliminando ogni sovrastruttura convenzionale:
+- **Zero-UI Distraction**: Rimozione della Navbar e del Sidebar Drawer per massimizzare lo spazio di lavoro.
 - **Palette**: Slate 950/800 per gli sfondi e Indigo 500/400 per accenti e focus.
-- **Tipografia**: Utilizzo di font monospazio ad alta leggibilità (Fira Code/JetBrains Mono) per l'editing e sans-serif professionali per l'interfaccia.
-- **Quasar Framework**: Sfrutta la potenza dei componenti Vue di Quasar per breadcrumbs, card e dialoghi, garantendo un look nativo e coerente.
+- **Tipografia**: Utilizzo di font monospazio ad alta leggibilità (Fira Code/JetBrains Mono) per l'editing e sans-serif professionali per il browser dei file.
 
 ### 3.2 L'Editor (EasyMDE & CodeMirror)
 L'integrazione di EasyMDE è stata personalizzata a livello atomico:
-- **Toolbar Industriale**: Una barra degli strumenti a contrasto calcolato. Gli stati attivi sono indicati da bordi bianchi nitidi (1px solid white) su sfondo trasparente, garantendo che l'icona rimanga sempre visibile.
+- **Toolbar Industriale**: Una barra degli strumenti a contrasto calcolato in overlay.
 - **Mermaid Support**: Supporto nativo per diagrammi e grafici direttamente nel Markdown, renderizzati in tempo reale nell'anteprima.
-- **Fullscreen & Side-by-Side**: Modalità ottimizzate che nascondono dinamicamente i drawer e gli header di sistema per una concentrazione totale.
+- **Monolitical View**: L'editor occupa il 100% dell'area utile, nascondendo automaticamente tutti i controlli di file management durante la scrittura.
 
 ---
 
@@ -46,8 +46,10 @@ Dopo diverse iterazioni, la soluzione definitiva per l'anteprima PDF implementat
 - **Nuovo Tab Garantito**: Utilizzo di `window.open` via Javascript iniettato per superare le limitazioni di redirect di alcuni framework UI.
 - **Notification Lifecycle**: Le notifiche di stato ("Generazione PDF in corso...") vengono gestite tramite blocchi `try...finally` per assicurarne la scomparsa immediata al termine dell'operazione.
 
-### 4.2 Navigazione e Breadcrumbs
-Navigazione multi-livello con gestione automatica dei percorsi relativi e assoluti. L'UI riflette dinamicamente la posizione attuale nel filesystem, permettendo salti rapidi verso la Root del progetto o cartelle intermedie senza perdita di contesto.
+### 4.2 Navigazione e Breadcrumbs (Centralizzati)
+In assenza di Sidebar, la navigazione è stata integrata nel "Browser Centrale":
+- **Breadcrumbs Dinamici**: Permettono salti rapidi tra le directory e la Root del progetto direttamente dall'area di lavoro.
+- **Gestione Root**: Il comando "Cambia Root" è stato spostato nell'header del browser file per una gestione immediata dei repository.
 
 ---
 
