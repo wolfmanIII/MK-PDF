@@ -39,7 +39,7 @@ Launch the application:
 ```bash
 pipenv run python main.py
 ```
-*Note: The application is configured to automatically target the 'Nemici Tra Le Stelle' project workspace.*
+*Note: By default, the application starts in the user's home directory. Use the **Cambia Root** button inside the app to navigate to your project workspace.*
 
 ---
 
