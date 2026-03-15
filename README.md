@@ -8,7 +8,7 @@
 
 - **Industrial Editor**: Powered by EasyMDE, providing a clean, distraction-free Markdown experience with professional **Hotkeys** (Ctrl+S, Ctrl+P, Ctrl+F).
 - **Deep Space Aesthetics**: Uses the `Human Slate` design system (Zen Mode) for a minimalist, high-contrast dark mode.
-- **Local Versioning**: Integrated **Git Abstraction** for simplified document checkpoints and history management.
+- **Async Architecture**: Fully asynchronous file system operations using `aiofiles` for zero UI blocking.
 - **Global Search**: High-speed, recursive full-text search across the entire workspace.
 - **Data Visualization**: Native support for **Mermaid.js** diagrams, rendered directly into your documents and PDFs.
 - **Professional PDF Output**: Support for multiple templates (`clean`, `industrial`) with automatic page numbering and professional headers/footers.
@@ -48,9 +48,9 @@ pipenv run python main.py
 - **Breadcrumb Navigation**: Easily jump between subfolders of any local project.
 
 - `main.py`: Core orchestrator and FastAPI server.
-- `logic/`: Business logic for file management, Git abstraction, and PDF conversion.
+- `logic/`: Business logic for file management and PDF conversion (fully asynchronous).
 - `components/`: Modular UI components (Editor, Dialogs).
-- `static/`: Frontend assets (JavaScript, CSS).
+- `static/`: Frontend assets (JavaScript, CSS, Components) hosted locally for offline support.
 - `templates/`: HTML/CSS templates for web rendering and PDF exports (Headers/Footers).
 - `docs/`: Technical specifications and system analysis.
 
@@ -58,7 +58,7 @@ pipenv run python main.py
 
 ## 📄 Documentation
 For a deep dive into the system architecture, check out:
-- [Analisi Tecnica MK-PDF](file:///home/wolfman/projects/Pirates-Ancients-Corporations/MK-PDF/docs/Analisi-Tecnica-MK-PDF.md)
+- [Analisi Tecnica MK-PDF](file:///home/wolfman/projects/MK-PDF/docs/Analisi-Tecnica-MK-PDF.md)
 
 ---
 *Developed for the Pirates-Ancients-Corporations ecosystem.*
