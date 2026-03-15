@@ -120,7 +120,7 @@ class ChronosApp:
         if not self.internal_scroll:
             header_classes += ' sticky top-0'
         
-        with ui.row().classes(header_classes):
+        with ui.row().classes(header_classes) as self.editor_header:
             with ui.row().classes('items-center q-gutter-sm'):
                 ui.icon('edit_note', size='sm', color='primary').classes('opacity-50')
                 self.editor_breadcrumb_container = ui.row().classes('items-center q-gutter-xs')
@@ -142,8 +142,9 @@ class ChronosApp:
         if not self.internal_scroll:
             editor_card_classes += ' q-mt-md'
             
-        with ui.column().classes('w-full q-pa-lg').style('height: calc(100vh - 100px)' if self.internal_scroll else ''):
-            with ui.card().props('flat bordered').classes(f'{editor_card_classes} col-grow'):
+        with ui.column().classes('w-full q-pa-lg') \
+            .style('height: calc(100vh - 100px)' if self.internal_scroll else '') as self.editor_container:
+            with ui.card().props('flat bordered').classes(f'{editor_card_classes} col-grow') as self.editor_card:
                 self.editor.create()
 
     # --- UI Logic ---
@@ -251,9 +252,16 @@ class ChronosApp:
 
     def toggle_scroll_mode(self):
         self.internal_scroll = not self.internal_scroll
-        self.editor_view.clear()
-        with self.editor_view:
-            self._render_editor_view()
+        
+        if self.internal_scroll:
+            self.editor_header.classes(remove='sticky top-0')
+            self.editor_container.style('height: calc(100vh - 100px)')
+            self.editor_card.classes(remove='q-mt-md')
+        else:
+            self.editor_header.classes(add='sticky top-0')
+            self.editor_container.style(remove='height') # Removes the fixed height
+            self.editor_card.classes(add='q-mt-md')
+            
         ui.notify('Scroll interno ' + ('attivo' if self.internal_scroll else 'disattivato'))
 
     def on_search_change(self, e):
