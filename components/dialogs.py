@@ -81,30 +81,28 @@ class ModalSystem:
                             update_ui()
                         ui.label(part).classes('cursor-pointer text-primary text-weight-medium').on('click', mk_go)
 
-                # Lista items stile Premium
-                with ui.scroll_area().style('height: 350px; width: 100%').classes('q-mt-md bg-[#0f172a] rounded-borders'):
+                # Lista items stile Premium (Compatto)
+                with ui.scroll_area().style('height: 380px; width: 100%').classes('q-mt-md bg-[#0f172a] rounded-borders'):
                     items = navigate_logic(state['path'])
                     with ui.column().classes('w-full q-pa-sm q-gutter-xs'):
                         # Il pulsante "torna indietro"
                         if state['path'] != min_root:
                             parent = os.path.dirname(state['path'])
-                            with ui.row().classes('w-full q-pa-sm items-center cursor-pointer hover:bg-white/5 rounded-borders transition-colors group') \
+                            with ui.row().classes('w-full q-pa-xs items-center cursor-pointer hover:bg-white/5 rounded-borders transition-colors group') \
                                 .on('click', lambda: (state.update({'path': parent}), update_ui())):
-                                ui.icon('folder_open', color='grey-5', size='sm').classes('opacity-60 group-hover:opacity-100')
+                                ui.icon('folder_open', color='grey-5', size='xs').classes('opacity-60 group-hover:opacity-100')
                                 ui.label('.. / Parent Directory').classes('text-caption opacity-40 group-hover:opacity-80')
 
                         for item in items:
                             if item['is_dir']:
-                                with ui.row().classes('w-full q-pa-md items-center cursor-pointer hover:bg-primary/10 rounded-borders transition-colors group border-b border-white/5') \
+                                with ui.row().classes('w-full q-pa-sm items-center cursor-pointer hover:bg-primary/10 rounded-borders transition-colors group border-b border-white/5') \
                                     .on('click', lambda p=item['path']: (state.update({'path': p}), update_ui())):
                                     
-                                    with ui.row().classes('items-center q-gutter-md col-grow'):
-                                        ui.icon('folder', color='warning', size='md').classes('group-hover:scale-110 transition-transform')
-                                        with ui.column().classes('q-gutter-none'):
-                                            ui.label(item['name']).classes('text-weight-bold text-white')
-                                            ui.label('Sottocartella di sistema').classes('text-caption opacity-40')
+                                    with ui.row().classes('items-center q-gutter-sm col-grow'):
+                                        ui.icon('folder', color='warning', size='sm').classes('group-hover:scale-110 transition-transform')
+                                        ui.label(item['name']).classes('text-weight-bold text-white text-body2')
                                     
-                                    ui.icon('chevron_right', color='grey-5').classes('opacity-0 group-hover:opacity-100 transition-opacity')
+                                    ui.icon('chevron_right', color='grey-5', size='xs').classes('opacity-0 group-hover:opacity-100 transition-opacity')
 
                 # Input percorso
                 with ui.column().classes('w-full q-mt-lg q-gutter-sm'):
