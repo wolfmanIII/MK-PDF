@@ -119,10 +119,10 @@ class ChronosApp:
                 self.editor_breadcrumb_container = ui.row().classes('items-center q-gutter-xs')
             
             with ui.row().classes('q-gutter-sm items-center'):
-                ui.select(options=self.available_templates, value=self.active_pdf_template, on_change=lambda e: setattr(self, 'active_pdf_template', e.value)).props('flat dense options-dark').classes('text-caption opacity-70 w-24')
                 ui.button(icon='fullscreen', on_click=lambda: ui.run_javascript('if(window.MKEditor) window.MKEditor.instance.toggleFullScreen()')).props('flat color=primary id=btn-fullscreen').tooltip('Fullscreen')
                 ui.button('Chiudi', icon='close', on_click=self.close_file).props('flat text-color=grey id=btn-close')
                 ui.button('Salva', icon='save', on_click=self.save_file).props('unelevated color=primary id=btn-save')
+                ui.select(options=self.available_templates, value=self.active_pdf_template, on_change=lambda e: setattr(self, 'active_pdf_template', e.value)).props('flat dense options-dark').classes('text-caption opacity-70 w-24')
                 ui.button('PDF', icon='picture_as_pdf', on_click=self.print_pdf).props('unelevated color=secondary id=btn-pdf')
         
         with ui.card().props('flat bordered').classes('w-full col-grow q-pa-none'):
