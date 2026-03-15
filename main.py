@@ -58,13 +58,13 @@ class ChronosApp:
             ui.add_head_html(read_template('base_head.html'))
             ui.add_head_html(read_template('editor_head.html'))
             
-            with ui.column().classes('w-full q-pa-lg bg-[#0f172a] min-h-screen'):
-                self.browser_view = ui.column().classes('w-full q-gutter-md')
+            with ui.column().classes('w-full bg-[#0f172a] min-h-screen'):
+                self.browser_view = ui.column().classes('w-full q-pa-lg q-gutter-md')
                 self.browser_view.visible = True
                 with self.browser_view:
                     self._render_browser_view()
                 
-                self.editor_view = ui.column().classes('w-full').style('height: calc(100vh - 150px)')
+                self.editor_view = ui.column().classes('w-full')
                 self.editor_view.visible = False
                 with self.editor_view:
                     self._render_editor_view()
@@ -113,7 +113,7 @@ class ChronosApp:
             self.update_ui()
 
     def _render_editor_view(self):
-        with ui.row().classes('w-full q-pa-md items-center justify-between bg-[#1e293b] rounded-borders sticky top-0 z-50'):
+        with ui.row().classes('w-full q-pa-md items-center justify-between bg-[#1e293b] sticky top-0 z-50 shadow-lg'):
             with ui.row().classes('items-center q-gutter-sm'):
                 ui.icon('edit_note', size='sm', color='primary').classes('opacity-50')
                 self.editor_breadcrumb_container = ui.row().classes('items-center q-gutter-xs')
@@ -125,8 +125,9 @@ class ChronosApp:
                 ui.select(options=self.available_templates, value=self.active_pdf_template, on_change=lambda e: setattr(self, 'active_pdf_template', e.value)).props('flat dense options-dark').classes('text-caption opacity-70 w-24')
                 ui.button('PDF', icon='picture_as_pdf', on_click=self.print_pdf).props('unelevated color=secondary id=btn-pdf')
         
-        with ui.card().props('flat bordered').classes('w-full col-grow q-pa-none q-mt-md'):
-            self.editor.create()
+        with ui.column().classes('w-full q-pa-lg'):
+            with ui.card().props('flat bordered').classes('w-full col-grow q-pa-none'):
+                self.editor.create()
 
     # --- UI Logic ---
 
