@@ -39,6 +39,10 @@ class ChronosApp:
         self.active_pdf_template = 'industrial'
         self.available_templates = ['clean', 'industrial']
         
+        # Search State
+        self.search_query = ""
+        self.is_searching = False
+        
         # UI Elements
         self.file_list_container = None
         self.breadcrumb_container = None
@@ -81,14 +85,22 @@ class ChronosApp:
                     ui.label('MK-PDF').classes('text-h5 text-weight-bold text-primary')
                     self.breadcrumb_container = ui.row().classes('items-center q-gutter-xs')
                 
-                with ui.row().classes('q-gutter-sm'):
-                    if self.git and self.git.is_repo():
-                        ui.button('Checkpoint', icon='history', on_click=self.open_checkpoint_dialog).props('flat dense color=accent')
-                    elif self.git:
-                        ui.button('Inizializza Git', icon='git', on_click=self.init_git_repo).props('flat dense color=grey')
-                        
-                    ui.button('Cambia Root', icon='folder_open', on_click=self.open_root_picker).props('flat dense color=primary')
-                    ui.button('Nuovo File', icon='add', on_click=self.open_new_file_dialog).props('unelevated color=primary')
+                with ui.row().classes('items-center q-gutter-md'):
+                    # Search Bar
+                    with ui.input(placeholder='Cerca nei testi...', on_change=self.on_search_change).props('outlined dense color=primary').classes('w-64 bg-[#1e293b]') as self.search_input:
+                        with self.search_input.add_slot('prepend'):
+                            ui.icon('search')
+                        with self.search_input.add_slot('append'):
+                            ui.icon('close').classes('cursor-pointer').on('click', self.clear_search)
+                    
+                    with ui.row().classes('q-gutter-sm'):
+                        if self.git and self.git.is_repo():
+                            ui.button('Checkpoint', icon='history', on_click=self.open_checkpoint_dialog).props('flat dense color=accent')
+                        elif self.git:
+                            ui.button('Inizializza Git', icon='git', on_click=self.init_git_repo).props('flat dense color=grey')
+                            
+                        ui.button('Cambia Root', icon='folder_open', on_click=self.open_root_picker).props('flat dense color=primary')
+                        ui.button('Nuovo File', icon='add', on_click=self.open_new_file_dialog).props('unelevated color=primary')
             
             with ui.card().props('bordered flat').classes('w-full q-pa-none bg-[#0f172a]'):
                 with ui.row().classes('w-full q-pa-sm bg-[#1e293b] items-center text-overline'):
@@ -120,7 +132,10 @@ class ChronosApp:
 
     def update_ui(self):
         if not self.fm: return
-        self._update_file_list()
+        if self.is_searching:
+            self._update_search_results()
+        else:
+            self._update_file_list()
         self._update_breadcrumbs(self.breadcrumb_container, self.current_dir)
 
     def _update_file_list(self):
@@ -157,6 +172,36 @@ class ChronosApp:
                 if not is_dir:
                     ui.button(icon='delete', on_click=lambda: self.open_confirm_delete(path)).props('flat round dense color=negative').classes('q-ml-sm')
 
+    def _render_search_match(self, match):
+        async def handle_click():
+            await self.load_file(match['path'])
+
+        with ui.row().classes('w-full q-pa-md border-b border-white/5 items-center cursor-pointer hover:bg-[#1e293b] transition-colors') \
+            .on('click', handle_click):
+            
+            with ui.column().classes('col-grow'):
+                with ui.row().classes('items-center q-gutter-xs'):
+                    ui.icon('description', size='xs', color='primary').classes('opacity-50')
+                    ui.label(match['name']).classes('text-weight-bold text-primary')
+                    ui.label(f"linea {match['line']}").classes('text-caption monospace opacity-40')
+                
+                ui.label(match['excerpt']).classes('text-caption text-grey-4 truncate-2-lines q-pl-md border-l-2 border-primary/20')
+
+    def _update_search_results(self):
+        self.file_list_container.clear()
+        results = self.fm.search_content(self.search_query)
+        
+        with self.file_list_container:
+            if not results:
+                with ui.column().classes('w-full items-center q-pa-xl opacity-30'):
+                    ui.icon('search_off', size='4rem')
+                    ui.label('Nessun risultato trovato')
+                return
+            
+            ui.label(f'Trovati {len(results)} match').classes('q-pa-md text-overline text-accent opacity-70')
+            for match in results:
+                self._render_search_match(match)
+
     def _update_breadcrumbs(self, container, target_path, is_file=False):
         container.clear()
         parts = self.fm.get_breadcrumbs(target_path)
@@ -185,6 +230,17 @@ class ChronosApp:
     def go_to_root(self):
         self.close_file()
         self.go_to_dir(self.fm.project_root)
+
+    def on_search_change(self, e):
+        self.search_query = e.value
+        self.is_searching = len(self.search_query) >= 2
+        self.update_ui()
+
+    def clear_search(self):
+        self.search_input.value = ""
+        self.search_query = ""
+        self.is_searching = False
+        self.update_ui()
 
     async def load_file(self, path):
         self.current_file = path

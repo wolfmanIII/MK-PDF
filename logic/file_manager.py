@@ -76,3 +76,28 @@ class FileManager:
     def save_file(self, path, content):
         with open(path, 'w') as f:
             f.write(content)
+
+    def search_content(self, query):
+        """Cerca ricorsivamente una stringa in tutti i file .md del progetto."""
+        results = []
+        if not query or len(query) < 2: return results
+        
+        query = query.lower()
+        for root, _, files in os.walk(self.project_root):
+            for file in files:
+                if file.endswith('.md'):
+                    full_path = os.path.join(root, file)
+                    try:
+                        with open(full_path, 'r', encoding='utf-8') as f:
+                            for i, line in enumerate(f, 1):
+                                if query in line.lower():
+                                    results.append({
+                                        'path': full_path,
+                                        'name': file,
+                                        'line': i,
+                                        'excerpt': line.strip()
+                                    })
+                                    if len(results) > 50: return results # Limite di sicurezza
+                    except Exception:
+                        continue
+        return results
