@@ -14,26 +14,13 @@ class ModalSystem:
                 ui.label('IDENTIFICATIVO FILE').classes('text-overline text-primary')
                 name_input = ui.input(placeholder='es: rapporto_missione.md').props('outlined autofocus color=primary').classes('w-full')
                 
+                async def handle_create():
+                    await on_create(name_input.value, dialog)
                 with ui.row().classes('w-full justify-end q-gutter-sm'):
                     ui.button('Annulla', on_click=dialog.close).props('flat color=primary')
-                    ui.button('Crea File', on_click=lambda: on_create(name_input.value, dialog)).props('unelevated color=primary').classes('q-px-md')
+                    ui.button('Crea File', on_click=handle_create).props('unelevated color=primary').classes('q-px-md')
         dialog.open()
 
-    @staticmethod
-    def show_checkpoint_dialog(on_confirm):
-        with ui.dialog() as dialog, ui.card().classes('q-pa-none overflow-hidden bg-[#0f172a]').style('width: 450px'):
-            with ui.column().classes('w-full q-pa-md bg-accent text-white'):
-                ui.label('CHECKPOINT').classes('text-h6 text-weight-bold')
-                ui.label('Registrazione stato nel registro storico (Git)').classes('text-caption opacity-80 text-uppercase')
-                
-            with ui.column().classes('q-pa-lg w-full q-gutter-md'):
-                ui.label('MESSAGGIO DI LOG').classes('text-overline text-accent')
-                msg_input = ui.input(placeholder='Cosa hai fatto in questa sessione?').props('outlined autofocus color=accent').classes('w-full')
-                
-                with ui.row().classes('w-full justify-end q-gutter-sm q-pt-md'):
-                    ui.button('Annulla', on_click=dialog.close).props('flat color=grey')
-                    ui.button('Crea Checkpoint', on_click=lambda: on_confirm(msg_input.value, dialog)).props('unelevated color=accent').classes('q-px-md')
-        dialog.open()
 
     @staticmethod
     def confirm_delete(filename, on_confirm):
@@ -45,9 +32,11 @@ class ModalSystem:
             with ui.column().classes('q-pa-md w-full items-center'):
                 ui.label(f'Confermi l\'epurazione definitiva di "{filename}"?').classes('text-body1 text-center')
                 
+                async def handle_confirm():
+                    await on_confirm(dialog)
                 with ui.row().classes('q-gutter-md q-pt-md'):
                     ui.button('Annulla', on_click=dialog.close).props('flat color=grey')
-                    ui.button('Epurazione', on_click=lambda: on_confirm(dialog)).props('unelevated color=negative')
+                    ui.button('Epurazione', on_click=handle_confirm).props('unelevated color=negative')
         dialog.open()
 
     @staticmethod
@@ -139,6 +128,8 @@ class ModalSystem:
             
             with ui.row().classes('q-pa-md w-full justify-end q-gutter-sm border-t'):
                 ui.button('Annulla', on_click=dialog.close).props('flat color=primary')
-                ui.button('Connetti', on_click=lambda: on_select(state['path'], dialog)).props('unelevated color=primary')
+                async def submit():
+                    await on_select(state['path'], dialog)
+                ui.button('Connetti', on_click=submit).props('unelevated color=primary')
         
         dialog.open()

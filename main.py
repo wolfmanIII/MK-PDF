@@ -2,9 +2,9 @@ from nicegui import ui, app
 from components.editor import Editor
 from components.dialogs import ModalSystem
 from logic.file_manager import FileManager
-from logic.git_manager import GitManager
 from logic.converter import GotenbergClient
 from fastapi import Response
+from fastapi.staticfiles import StaticFiles
 import os
 import argparse
 import asyncio
@@ -26,10 +26,11 @@ def read_template(filename):
     path = os.path.join(os.path.dirname(__file__), 'templates', filename)
     with open(path, 'r') as f: return f.read()
 
-class ChronosApp:
+app.mount('/static', StaticFiles(directory='static'), name='static')
+
+class MKPDFApp:
     def __init__(self):
         self.fm = FileManager(PROJECT_ROOT) if PROJECT_ROOT else None
-        self.git = GitManager(PROJECT_ROOT) if PROJECT_ROOT else None
         self.editor = Editor()
         self.client = GotenbergClient(GOTENBERG_URL)
         
@@ -100,11 +101,7 @@ class ChronosApp:
                             ui.icon('close').classes('cursor-pointer').on('click', self.clear_search)
                     
                     with ui.row().classes('q-gutter-sm'):
-                        if self.git and self.git.is_repo():
-                            ui.button('Checkpoint', icon='history', on_click=self.open_checkpoint_dialog).props('flat dense color=accent')
-                        # è meglio impedire questa funzionalità
-                        #elif self.git:
-                        #    ui.button('Inizializza Git', icon='git', on_click=self.init_git_repo).props('flat dense color=grey')
+                        pass
                             
                         ui.button('Cambia Root', icon='folder_open', on_click=self.open_root_picker).props('flat dense color=primary')
                         ui.button('Nuovo File', icon='add', on_click=self.open_new_file_dialog).props('unelevated color=primary')
@@ -120,11 +117,11 @@ class ChronosApp:
             await self.update_ui()
 
     async def _render_editor_view(self):
-        header_classes = 'w-full q-pa-md items-center justify-between bg-[#1e293b] z-50 shadow-lg'
+        header_classes = 'w-full q-pa-md items-center justify-between bg-[#1e293b] z-50 shadow-lg editor-header'
         if not self.internal_scroll:
             header_classes += ' sticky top-0'
         
-        with ui.row().classes(header_classes) as self.editor_header:
+        with ui.row().classes(header_classes).props('id=editor-header-bar') as self.editor_header:
             with ui.row().classes('items-center q-gutter-sm'):
                 ui.icon('edit_note', size='sm', color='primary').classes('opacity-50')
                 self.editor_breadcrumb_container = ui.row().classes('items-center q-gutter-xs')
@@ -149,7 +146,7 @@ class ChronosApp:
             
         with ui.column().classes('w-full q-pa-lg') \
             .style('height: calc(100vh - 100px)' if self.internal_scroll else '') as self.editor_container:
-            with ui.card().props('flat bordered').classes(f'{editor_card_classes} col-grow') as self.editor_card:
+            with ui.card().props('flat bordered').classes(f'{editor_card_classes} col-grow overflow-hidden') as self.editor_card:
                 self.editor.create()
 
     # --- UI Logic ---
@@ -178,7 +175,7 @@ class ChronosApp:
     def _render_file_row(self, name, is_dir, path, info=None):
         async def handle_click():
             if is_dir: 
-                self.go_to_dir(path)
+                await self.go_to_dir(path)
             else: 
                 await self.load_file(path)
 
@@ -231,15 +228,20 @@ class ChronosApp:
         parts = self.fm.get_breadcrumbs(target_path)
         with container:
             ui.icon('account_tree', size='xs', color='primary').classes('opacity-50')
+            async def go_root():
+                await self.close_file()
+                await self.go_to_dir(self.fm.project_root)
             ui.label(os.path.basename(self.fm.project_root)).classes('text-primary text-weight-bold cursor-pointer') \
-                .on('click', lambda: (self.close_file(), self.go_to_dir(self.fm.project_root)))
+                .on('click', go_root)
             
             acc = self.fm.project_root
             for p in parts:
                 ui.label('/').classes('opacity-30')
                 acc = os.path.join(acc, p)
-                def mk_go(p_auto=acc): return lambda: (self.close_file(), self.go_to_dir(p_auto))
-                ui.label(p).classes('cursor-pointer text-weight-medium').on('click', mk_go())
+                async def mk_go(p_auto=acc):
+                    await self.close_file()
+                    await self.go_to_dir(p_auto)
+                ui.label(p).classes('cursor-pointer text-weight-medium').on('click', mk_go)
             
             if is_file and self.current_file:
                 ui.label('/').classes('opacity-30')
@@ -252,7 +254,7 @@ class ChronosApp:
         await self.update_ui()
 
     async def go_to_root(self):
-        self.close_file()
+        await self.close_file()
         await self.go_to_dir(self.fm.project_root)
 
     def toggle_scroll_mode(self):
@@ -294,11 +296,11 @@ class ChronosApp:
         self.editor.set_content(content)
         self._update_breadcrumbs(self.editor_breadcrumb_container, os.path.dirname(path), True)
 
-    def close_file(self):
+    async def close_file(self):
         self.current_file = None
         self.browser_view.visible = True
         self.editor_view.visible = False
-        self.update_ui()
+        await self.update_ui()
 
     async def save_file(self):
         if not self.current_file: return
@@ -353,7 +355,7 @@ class ChronosApp:
                 ui.notify("Epurato")
                 dialog.close()
                 await self.update_ui()
-                if self.current_file == path: self.close_file()
+                if self.current_file == path: await self.close_file()
             except Exception as e: ui.notify(str(e), type='negative')
         ModalSystem.confirm_delete(os.path.basename(path), on_confirm)
 
@@ -363,34 +365,12 @@ class ChronosApp:
 
     async def _on_root_selected(self, path, dialog):
         self.fm = FileManager(path)
-        self.git = GitManager(path)
         self.current_dir = path
         await self._render_browser_view()
         dialog.close()
 
-    def open_checkpoint_dialog(self):
-        async def on_confirm(message, dialog):
-            if not message:
-                ui.notify('Inserire un messaggio per il checkpoint', type='warning')
-                return
-            
-            success, result = self.git.create_checkpoint(message)
-            if success:
-                ui.notify(result, color='positive')
-                dialog.close()
-            else:
-                ui.notify(result, color='negative')
-        
-        ModalSystem.show_checkpoint_dialog(on_confirm)
 
-    def init_git_repo(self):
-        if self.git.init_repo():
-            ui.notify('Repository Git inizializzato', color='positive')
-            self._render_browser_view()
-        else:
-            ui.notify('Errore durante l\'inizializzazione Git', color='negative')
-
-app_obj = ChronosApp()
+app_obj = MKPDFApp()
 app_obj.start()
 
 @app.get('/pdf_preview')

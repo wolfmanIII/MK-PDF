@@ -1,7 +1,7 @@
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-<script src="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+<link rel="stylesheet" href="/static/css/easymde.min.css">
+<link rel="stylesheet" href="/static/css/font-awesome.min.css">
+<script src="/static/js/easymde.min.js"></script>
+<script src="/static/js/mermaid.min.js"></script>
 <style>
     /* HUMAN DARK THEME - SLATE & INDIGO */
     :root {
@@ -22,6 +22,11 @@
     body {
         background-color: var(--human-deep) !important;
         color: var(--human-text) !important;
+        box-sizing: border-box !important;
+    }
+
+    *, *::before, *::after {
+        box-sizing: inherit !important;
     }
 
     /* Editor Container */
@@ -29,6 +34,17 @@
         border-radius: 8px;
         background: var(--human-deep) !important;
         border: 1px solid rgba(99, 102, 241, 0.2) !important;
+        box-sizing: border-box !important;
+        overflow: hidden !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+
+    /* Tutte le componenti interne dell'editor devono rispettare il box-sizing */
+    .EasyMDEContainer *,
+    .EasyMDEContainer *::before,
+    .EasyMDEContainer *::after {
+        box-sizing: border-box !important;
     }
 
     /* Toolbar - Human & Clean */
@@ -40,6 +56,8 @@
         display: flex !important;
         align-items: center !important;
         border-radius: 8px 8px 0 0 !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
     }
 
     /* Toolbar Buttons - Clean & Transparent */
@@ -104,7 +122,75 @@
         font-family: 'Fira Code', 'JetBrains Mono', monospace !important;
         font-size: 15px !important;
         min-height: 500px !important;
+        overflow: hidden !important; /* Forza il contenitore a non avere scroll proprie */
+    }
+
+    .CodeMirror-scroll {
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        width: 100% !important;
+        box-sizing: content-box !important;
+        /* Nuke the horizontal bar at browser level */
+        scrollbar-width: none; 
+        -ms-overflow-style: none;
+    }
+
+    .CodeMirror-scroll::-webkit-scrollbar {
+        width: 6px; /* Solo verticale */
+        height: 0px; /* Niente orizzontale */
+    }
+
+    .CodeMirror-sizer {
+        min-width: 0 !important;
+        width: 100% !important;
+        margin-right: 0 !important;
+        padding-right: 0 !important;
+        border-right: none !important;
+    }
+
+    .CodeMirror-lines {
         padding: 20px !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+
+    .CodeMirror-hscrollbar {
+        display: none !important;
+        pointer-events: none !important;
+    }
+
+    /* Status Bar Fix */
+    .editor-statusbar {
+        width: 100% !important;
+        box-sizing: border-box !important;
+        padding: 6px 12px !important;
+        overflow: hidden !important;
+    }
+
+    .CodeMirror-lines {
+        padding: 20px !important;
+        box-sizing: border-box !important;
+    }
+
+    .CodeMirror-hscrollbar,
+    .CodeMirror-vscrollbar {
+        /* Nascondiamo le barre native di CodeMirror per usare quelle del browser/container */
+        display: none !important;
+    }
+
+    /* Status Bar - Industrial & Clean */
+    .editor-statusbar {
+        background: var(--human-slate) !important;
+        color: var(--human-dim) !important;
+        padding: 8px 16px !important;
+        font-family: monospace !important;
+        font-size: 11px !important;
+        border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
+        border-radius: 0 0 8px 8px !important;
+    }
+
+    .editor-statusbar span {
+        margin-left: 1em !important;
     }
 
     .CodeMirror-cursor {
@@ -174,7 +260,10 @@
     }
 
     body.is-fullscreen .q-drawer,
-    body.is-fullscreen .q-header {
+    body.is-fullscreen .q-header,
+    body.is-fullscreen .editor-header,
+    body.is-fullscreen #editor-header-bar {
+        display: none !important;
         visibility: hidden !important;
     }
 
@@ -263,13 +352,27 @@
                 }
             });
 
-            this.instance.codemirror.on("refresh", () => {
-                if (this.instance.isFullscreenActive()) {
+            // Robust Fullscreen Monitoring
+            const updateFullscreenState = () => {
+                const isFS = this.instance.isFullscreenActive();
+                if (isFS) {
                     document.body.classList.add('is-fullscreen');
                 } else {
                     document.body.classList.remove('is-fullscreen');
                 }
-            });
+            };
+
+            this.instance.codemirror.on("refresh", updateFullscreenState);
+            this.instance.codemirror.on("focus", updateFullscreenState);
+            
+            // Catch state changes from toolbar buttons
+            const toolbar = document.querySelector('.editor-toolbar');
+            if (toolbar) {
+                toolbar.addEventListener('click', () => setTimeout(updateFullscreenState, 50));
+            }
+
+            // Fallback interval for edge cases
+            setInterval(updateFullscreenState, 500);
 
             setTimeout(() => {
                 this.instance.codemirror.refresh();
