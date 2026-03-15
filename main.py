@@ -99,8 +99,9 @@ class ChronosApp:
                     with ui.row().classes('q-gutter-sm'):
                         if self.git and self.git.is_repo():
                             ui.button('Checkpoint', icon='history', on_click=self.open_checkpoint_dialog).props('flat dense color=accent')
-                        elif self.git:
-                            ui.button('Inizializza Git', icon='git', on_click=self.init_git_repo).props('flat dense color=grey')
+                        # è meglio impedire questa funzionalità
+                        #elif self.git:
+                        #    ui.button('Inizializza Git', icon='git', on_click=self.init_git_repo).props('flat dense color=grey')
                             
                         ui.button('Cambia Root', icon='folder_open', on_click=self.open_root_picker).props('flat dense color=primary')
                         ui.button('Nuovo File', icon='add', on_click=self.open_new_file_dialog).props('unelevated color=primary')
