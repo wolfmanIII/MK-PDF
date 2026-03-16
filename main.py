@@ -8,6 +8,7 @@ from fastapi.staticfiles import StaticFiles
 import os
 import argparse
 import asyncio
+import urllib.parse
 
 # --- Configuration ---
 GOTENBERG_URL = os.getenv('GOTENBERG_URL', 'http://localhost:3000')
@@ -204,32 +205,30 @@ class MKPDFApp:
             ui.notify(str(e), type='negative')
 
     def _render_file_row(self, name, is_dir, path, info=None):
-        target = f'/?dir={path}' if is_dir else f'/?file={path}'
+        encoded_path = urllib.parse.quote(path)
+        target = f'/?dir={encoded_path}' if is_dir else f'/?file={encoded_path}'
         
-        async def handle_click():
-            if is_dir: 
-                await self.go_to_dir(path)
-            else: 
-                await self.load_file(path)
-
-        with ui.link(target=target).classes('w-full no-underline text-white'):
-            with ui.row().classes('w-full q-pa-sm border-b border-white/5 items-center cursor-pointer hover:bg-[#1e293b] transition-colors'):
-                
-                icon = 'folder' if is_dir else 'description'
-                icon_color = 'warning' if is_dir else 'primary'
-                ui.icon(icon, size='sm', color=icon_color).classes('opacity-70')
-                ui.label(name).classes('col-grow truncate text-weight-medium')
-                
-                if info and name != ".. (Parent Sector)":
-                    ui.label(info['size']).classes('col-2 text-right text-caption monospace opacity-60')
-                    ui.label(info['mtime']).classes('col-3 text-right q-pr-md text-caption monospace opacity-60')
-                    if not is_dir:
-                        async def delete_with_stop():
-                            self.open_confirm_delete(path)
-                        ui.button(icon='delete', on_click=delete_with_stop).props('flat round dense color=negative').classes('q-ml-sm').on('click.stop', lambda: None)
+        with ui.row().classes('w-full q-pa-sm border-b border-white/5 items-center hover:bg-[#1e293b] transition-colors group'):
+            # Area cliccable (Link)
+            with ui.link(target=target).classes('col-grow no-underline text-white'):
+                with ui.row().classes('items-center q-gutter-sm'):
+                    icon = 'folder' if is_dir else 'description'
+                    icon_color = 'warning' if is_dir else 'primary'
+                    ui.icon(icon, size='sm', color=icon_color).classes('opacity-70')
+                    ui.label(name).classes('truncate text-weight-medium')
+            
+            # Info e Azioni (NON nel link per evitare errori di anchor Quasar)
+            if info and name != ".. (Parent Sector)":
+                ui.label(info['size']).classes('col-2 text-right text-caption monospace opacity-60')
+                ui.label(info['mtime']).classes('col-3 text-right q-pr-md text-caption monospace opacity-60')
+                if not is_dir:
+                    ui.button(icon='delete', on_click=lambda: self.open_confirm_delete(path)) \
+                        .props('flat round dense color=negative') \
+                        .classes('q-ml-sm opacity-0 group-hover:opacity-100 transition-opacity')
 
     def _render_search_match(self, match):
-        with ui.link(target=f"/?file={match['path']}").classes('w-full no-underline text-white'):
+        encoded_path = urllib.parse.quote(match['path'])
+        with ui.link(target=f"/?file={encoded_path}").classes('w-full no-underline text-white'):
             with ui.row().classes('w-full q-pa-md border-b border-white/5 items-center cursor-pointer hover:bg-[#1e293b] transition-colors'):
                 
                 with ui.column().classes('col-grow'):
@@ -261,14 +260,16 @@ class MKPDFApp:
         parts = self.fm.get_breadcrumbs(target_path)
         with container:
             ui.icon('account_tree', size='xs', color='primary').classes('opacity-50')
-            ui.link(os.path.basename(self.fm.project_root), target=f'/?dir={self.fm.project_root}') \
+            root_encoded = urllib.parse.quote(self.fm.project_root)
+            ui.link(os.path.basename(self.fm.project_root), target=f'/?dir={root_encoded}') \
                 .classes('text-primary text-weight-bold no-underline')
             
             acc = self.fm.project_root
             for p in parts:
                 ui.label('/').classes('opacity-30')
                 acc = os.path.join(acc, p)
-                ui.link(p, target=f'/?dir={acc}') \
+                acc_encoded = urllib.parse.quote(acc)
+                ui.link(p, target=f'/?dir={acc_encoded}') \
                     .classes('text-white text-weight-medium no-underline')
             
             if is_file and self.current_file:
