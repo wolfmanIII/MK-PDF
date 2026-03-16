@@ -19,9 +19,8 @@ parser.add_argument('path', nargs='?', default=None)
 args, _ = parser.parse_known_args()
 PROJECT_ROOT = os.path.abspath(args.path) if args.path else None
 
-# Cache per il PDF
-pdf_cache = {'latest': b''}
-
+# Sessions for PDF and State
+pdf_sessions = {}  # {client_id: b'pdf_data'}
 def read_template(filename):
     path = os.path.join(os.path.dirname(__file__), 'templates', filename)
     with open(path, 'r') as f: return f.read()
@@ -47,6 +46,9 @@ class MKPDFApp:
         # UI Options
         self.internal_scroll = False
         
+        # Core Infrastructure
+        self.nicegui_client = None
+        
         # UI Elements (initialized per session)
         self.browser_view = None
         self.editor_view = None
@@ -60,6 +62,7 @@ class MKPDFApp:
         self.search_input = None
 
     async def render(self, file: str = None, dir: str = None):
+        self.nicegui_client = ui.context.client
         ui.dark_mode().enable()
         # Human Theme: Slate & Indigo (Industrial Standard)
         ui.colors(primary='#6366f1', secondary='#1e293b', accent='#818cf8')
@@ -89,10 +92,10 @@ class MKPDFApp:
             self.browser_view.visible = True
             self.editor_view.visible = False
         
-        # Caricamento iniziale
-        ui.timer(0.1, self.update_ui, once=True)
+        # Caricamento iniziale - Eseguito direttamente per preservare il contesto
+        await self.update_ui()
         if file:
-            ui.timer(0.2, lambda: self.load_file(file), once=True)
+            await self.load_file(file)
 
 
     async def _render_browser_view(self):
@@ -152,7 +155,7 @@ class MKPDFApp:
                     .tooltip('Toggle Scroll Protocol') \
                     .classes('opacity-50 hover:opacity-100')
                 
-                ui.button(icon='fullscreen', on_click=lambda: ui.run_javascript('if(window.MKEditor) window.MKEditor.instance.toggleFullScreen()')).props('flat color=primary id=btn-fullscreen').tooltip('Neural Link Fullscreen')
+                ui.button(icon='fullscreen', on_click=lambda: self.nicegui_client.run_javascript('if(window.MKEditor) window.MKEditor.instance.toggleFullScreen()') if self.nicegui_client else None).props('flat color=primary id=btn-fullscreen').tooltip('Neural Link Fullscreen')
                 ui.button('Terminate', icon='close', on_click=self.close_file).props('flat text-color=grey id=btn-close')
                 ui.button('Secure Records', icon='save', on_click=self.save_file).props('unelevated color=primary id=btn-save')
                 ui.select(options=self.available_templates, value=self.active_pdf_template, on_change=lambda e: setattr(self, 'active_pdf_template', e.value)).props('flat dense options-dark').classes('text-caption opacity-70 w-24')
@@ -324,11 +327,12 @@ class MKPDFApp:
             await asyncio.sleep(0.1) 
             # Robusto: tentiamo init JS con timeout maggiore e check esistenza
             try:
-                await ui.run_javascript('if (window.MKEditor) window.MKEditor.init()', timeout=2.0)
+                if self.nicegui_client:
+                    await self.nicegui_client.run_javascript('if (window.MKEditor) window.MKEditor.init()', timeout=3.0)
             except Exception as js_err:
                 print(f"JS Sync non-critical error: {js_err}")
             
-            self.editor.set_content(content)
+            await self.editor.set_content(content, self.nicegui_client)
             self._update_breadcrumbs(self.editor_breadcrumb_container, os.path.dirname(path), True)
         except Exception as e:
             ui.notify(f"Error loading {os.path.basename(path)}: {e}", type='negative')
@@ -341,36 +345,24 @@ class MKPDFApp:
 
     async def save_file(self):
         if not self.current_file: return
-        content = await self.editor.get_content()
+        content = await self.editor.get_content(self.nicegui_client)
         await self.fm.save_file(self.current_file, content)
-        ui.notify('Dati salvati', type='positive')
+        ui.notify('Data secured successfully', type='positive')
 
     async def print_pdf(self):
         if not self.current_file: return
         ui.notify('Generazione PDF in corso...', spinner=True)
         try:
-            content = await self.editor.get_content()
+            content = await self.editor.get_content(self.nicegui_client)
+            current_template = self.active_pdf_template
+            pdf_content = await self.client.convert_markdown(content, current_template)
             
-            # Caricamento template dinamico
-            template_path = os.path.join(os.path.dirname(__file__), 'templates', 'export', self.active_pdf_template)
-            header_html = None
-            footer_html = None
+            # Cache per-sessione
+            if self.nicegui_client:
+                pdf_sessions[self.nicegui_client.id] = pdf_content
+                ui.download(f'/pdf_preview/{self.nicegui_client.id}')
             
-            h_file = os.path.join(template_path, 'header.html')
-            f_file = os.path.join(template_path, 'footer.html')
-            
-            if os.path.exists(h_file):
-                with open(h_file, 'r') as f: header_html = f.read()
-            if os.path.exists(f_file):
-                with open(f_file, 'r') as f: footer_html = f.read()
-
-            pdf_bytes = await asyncio.to_thread(self.client.convert_markdown, content, header_html, footer_html)
-            if pdf_bytes:
-                pdf_cache['latest'] = pdf_bytes
-                ui.notify('PDF pronto', type='positive')
-                await ui.run_javascript('window.open("/pdf_preview?t=" + Date.now(), "_blank"); null;')
-            else:
-                ui.notify('Errore nella conversione PDF', type='negative')
+            ui.notify('PDF Synthesis complete', type='positive')
         except Exception as e:
             ui.notify(f'Errore: {str(e)}', type='negative')
         finally:
@@ -411,10 +403,12 @@ class MKPDFApp:
 async def main_page(file: str = None, dir: str = None):
     app_instance = MKPDFApp()
     await app_instance.render(file=file, dir=dir)
-@app.get('/pdf_preview')
-def pdf_preview():
+@app.get('/pdf_preview/{client_id}')
+def pdf_preview(client_id: str):
+    if client_id not in pdf_sessions:
+        return Response(status_code=404)
     return Response(
-        content=pdf_cache['latest'], 
+        content=pdf_sessions[client_id], 
         media_type='application/pdf',
         headers={'Content-Disposition': 'inline; filename="preview.pdf"'}
     )
