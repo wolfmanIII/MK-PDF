@@ -1,5 +1,5 @@
 # Analisi Tecnica: Progetto MK-PDF
-**Versione:** 1.2.0  
+**Versione:** 1.3.0  
 **Data di Analisi:** 2026-03-15  
 **Classificazione:** Documentazione Tecnica di Sistema
 
@@ -56,6 +56,9 @@ Inizialmente progettato con un sistema di sincronizzazione continua (messaggisti
 
 ### Gestione dello Stato UX (Page vs Editor Focus)
 Per bilanciare l'ergonomia su diversi monitor, l'app implementa un toggle di stato per il container dell'editor. In modalità "Focus su Pagina", l'header diventa `sticky` e il container scala con il contenuto. In modalità "Focus su Editor", il container viene bloccato a `100vh` e lo scroll viene delegato internamente. Questo switch avviene senza re-rendering del DOM per preservare il cursore (cursor persistence).
+
+### Deep Linking & Browser Integration
+Il sistema implementa il supporto nativo per i link HTML (`ui.link`) su tutte le entità navigabili (file, directory, breadcrumbs). L'inizializzazione dello stato dell'applicazione è guidata da parametri di query (`?file=` e `?dir=`), permettendo la gestione di sessioni multiple, l'uso del tasto destro ("Apri in nuova scheda") e il bookmarking di specifici settori del workspace.
 
 ### In-Memory PDF Streaming & Templates
 A differenza delle utility standard che creano file di spool, MK-PDF utilizza un approccio "fileless" integrando Jinja2 per supportare template multipli (`clean`, `industrial`). La pipeline di conversione comunica via streaming con Gotenberg e serve il risultato tramite un buffer RAM. Questo approccio è stato scelto per eliminare frammenti di dati nel volume del progetto e velocizzare l'apertura nel browser attraverso rotte FastAPI dedicate.
