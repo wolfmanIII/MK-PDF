@@ -188,7 +188,10 @@ class MKPDFApp:
     def _render_file_row(self, name, is_dir, path, info=None):
         target = f'/?dir={path}' if is_dir else f'/?file={path}'
         
-        async def handle_click():
+        async def handle_click(e=None):
+            if e: 
+                e.stop_propagation()
+                e.prevent_default()
             if is_dir: 
                 await self.go_to_dir(path)
             else: 
@@ -196,7 +199,7 @@ class MKPDFApp:
 
         with ui.link(target=target).classes('w-full no-underline text-white'):
             with ui.row().classes('w-full q-pa-sm border-b border-white/5 items-center cursor-pointer hover:bg-[#1e293b] transition-colors') \
-                .on('click', handle_click).stop_propagation():
+                .on('click', handle_click):
                 
                 icon = 'folder' if is_dir else 'description'
                 icon_color = 'warning' if is_dir else 'primary'
@@ -207,15 +210,21 @@ class MKPDFApp:
                     ui.label(info['size']).classes('col-2 text-right text-caption monospace opacity-60')
                     ui.label(info['mtime']).classes('col-3 text-right q-pr-md text-caption monospace opacity-60')
                     if not is_dir:
-                        ui.button(icon='delete', on_click=lambda: self.open_confirm_delete(path)).props('flat round dense color=negative').classes('q-ml-sm').on('click', lambda: None).stop_propagation()
+                        async def delete_with_stop(e):
+                            e.stop_propagation()
+                            self.open_confirm_delete(path)
+                        ui.button(icon='delete', on_click=delete_with_stop).props('flat round dense color=negative').classes('q-ml-sm')
 
     def _render_search_match(self, match):
-        async def handle_click():
+        async def handle_click(e=None):
+            if e: 
+                e.stop_propagation()
+                e.prevent_default()
             await self.load_file(match['path'])
 
         with ui.link(target=f"/?file={match['path']}").classes('w-full no-underline text-white'):
             with ui.row().classes('w-full q-pa-md border-b border-white/5 items-center cursor-pointer hover:bg-[#1e293b] transition-colors') \
-                .on('click', handle_click).stop_propagation():
+                .on('click', handle_click):
                 
                 with ui.column().classes('col-grow'):
                     with ui.row().classes('items-center q-gutter-xs'):
@@ -241,27 +250,34 @@ class MKPDFApp:
                 self._render_search_match(match)
 
     def _update_breadcrumbs(self, container, target_path, is_file=False):
+        if not container or not hasattr(container, 'client') or not container.client: return
         container.clear()
         parts = self.fm.get_breadcrumbs(target_path)
         with container:
             ui.icon('account_tree', size='xs', color='primary').classes('opacity-50')
-            async def go_root():
+            async def go_root(e=None):
+                if e: 
+                    e.stop_propagation()
+                    e.prevent_default()
                 await self.close_file()
                 await self.go_to_dir(self.fm.project_root)
             ui.link(os.path.basename(self.fm.project_root), target=f'/?dir={self.fm.project_root}') \
                 .classes('text-primary text-weight-bold no-underline') \
-                .on('click', go_root).stop_propagation()
+                .on('click', go_root)
             
             acc = self.fm.project_root
             for p in parts:
                 ui.label('/').classes('opacity-30')
                 acc = os.path.join(acc, p)
-                async def mk_go(p_auto=acc):
+                async def mk_go(e=None, p_auto=acc):
+                    if e: 
+                        e.stop_propagation()
+                        e.prevent_default()
                     await self.close_file()
                     await self.go_to_dir(p_auto)
                 ui.link(p, target=f'/?dir={acc}') \
                     .classes('text-white text-weight-medium no-underline') \
-                    .on('click', mk_go).stop_propagation()
+                    .on('click', mk_go)
             
             if is_file and self.current_file:
                 ui.label('/').classes('opacity-30')
