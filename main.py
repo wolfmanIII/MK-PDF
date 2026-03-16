@@ -47,47 +47,52 @@ class MKPDFApp:
         # UI Options
         self.internal_scroll = False
         
-        # UI Elements
+        # UI Elements (initialized per session)
+        self.browser_view = None
+        self.editor_view = None
         self.file_list_container = None
         self.breadcrumb_container = None
         self.editor_breadcrumb_container = None
+        self.editor_header = None
+        self.editor_container = None
+        self.editor_card = None
+        self.scroll_toggle_btn = None
+        self.search_input = None
 
-    def start(self):
-        @ui.page('/')
-        async def main_page(file: str = None, dir: str = None):
-            ui.dark_mode().enable()
-            # Human Theme: Slate & Indigo (Industrial Standard)
-            ui.colors(primary='#6366f1', secondary='#1e293b', accent='#818cf8')
+    async def render(self, file: str = None, dir: str = None):
+        ui.dark_mode().enable()
+        # Human Theme: Slate & Indigo (Industrial Standard)
+        ui.colors(primary='#6366f1', secondary='#1e293b', accent='#818cf8')
+        
+        ui.add_head_html(read_template('base_head.html'))
+        ui.add_head_html(read_template('editor_head.html'))
+        
+        with ui.column().classes('w-full bg-[#0f172a] min-h-screen'):
+            self.browser_view = ui.column().classes('w-full q-pa-lg q-gutter-md')
+            self.browser_view.visible = True
+            with self.browser_view:
+                await self._render_browser_view()
             
-            ui.add_head_html(read_template('base_head.html'))
-            ui.add_head_html(read_template('editor_head.html'))
-            
-            with ui.column().classes('w-full bg-[#0f172a] min-h-screen'):
-                self.browser_view = ui.column().classes('w-full q-pa-lg q-gutter-md')
-                self.browser_view.visible = True
-                with self.browser_view:
-                    await self._render_browser_view()
-                
-                self.editor_view = ui.column().classes('w-full')
-                self.editor_view.visible = False
-                with self.editor_view:
-                    await self._render_editor_view()
-            
-            # Initial state handling
-            if file:
-                self.current_file = file
-                self.current_dir = os.path.dirname(file)
-                self.browser_view.visible = False
-                self.editor_view.visible = True
-            elif dir:
-                self.current_dir = dir
-                self.browser_view.visible = True
-                self.editor_view.visible = False
-            
-            # Caricamento iniziale
-            ui.timer(0.1, self.update_ui, once=True)
-            if file:
-                ui.timer(0.2, lambda: self.load_file(file), once=True)
+            self.editor_view = ui.column().classes('w-full')
+            self.editor_view.visible = False
+            with self.editor_view:
+                await self._render_editor_view()
+        
+        # Initial state handling
+        if file:
+            self.current_file = file
+            self.current_dir = os.path.dirname(file)
+            self.browser_view.visible = False
+            self.editor_view.visible = True
+        elif dir:
+            self.current_dir = dir
+            self.browser_view.visible = True
+            self.editor_view.visible = False
+        
+        # Caricamento iniziale
+        ui.timer(0.1, self.update_ui, once=True)
+        if file:
+            ui.timer(0.2, lambda: self.load_file(file), once=True)
 
 
     async def _render_browser_view(self):
@@ -402,9 +407,10 @@ class MKPDFApp:
         dialog.close()
 
 
-app_obj = MKPDFApp()
-app_obj.start()
-
+@ui.page('/')
+async def main_page(file: str = None, dir: str = None):
+    app_instance = MKPDFApp()
+    await app_instance.render(file=file, dir=dir)
 @app.get('/pdf_preview')
 def pdf_preview():
     return Response(
