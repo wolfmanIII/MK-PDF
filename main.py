@@ -209,8 +209,7 @@ class MKPDFApp:
         target = f'/?dir={encoded_path}' if is_dir else f'/?file={encoded_path}'
         
         with ui.row().classes('w-full q-pa-sm border-b border-white/5 items-center hover:bg-[#1e293b] transition-colors group'):
-            # Area cliccable (Link)
-            with ui.link(target=target).classes('col-grow no-underline text-white'):
+            with ui.element('a').props(f'href="{target}"').classes('col-grow no-underline text-white'):
                 with ui.row().classes('items-center q-gutter-sm'):
                     icon = 'folder' if is_dir else 'description'
                     icon_color = 'warning' if is_dir else 'primary'
@@ -228,7 +227,7 @@ class MKPDFApp:
 
     def _render_search_match(self, match):
         encoded_path = urllib.parse.quote(match['path'])
-        with ui.link(target=f"/?file={encoded_path}").classes('w-full no-underline text-white'):
+        with ui.element('a').props(f'href="/?file={encoded_path}"').classes('w-full no-underline text-white'):
             with ui.row().classes('w-full q-pa-md border-b border-white/5 items-center cursor-pointer hover:bg-[#1e293b] transition-colors'):
                 
                 with ui.column().classes('col-grow'):
@@ -261,17 +260,19 @@ class MKPDFApp:
         with container:
             ui.icon('account_tree', size='xs', color='primary').classes('opacity-50')
             root_encoded = urllib.parse.quote(self.fm.project_root)
-            ui.link(os.path.basename(self.fm.project_root), target=f'/?dir={root_encoded}') \
-                .classes('text-primary text-weight-bold no-underline')
+            ui.element('a').props(f'href="/?dir={root_encoded}"') \
+                .classes('text-primary text-weight-bold no-underline') \
+                .text(os.path.basename(self.fm.project_root))
             
             acc = self.fm.project_root
             for p in parts:
                 ui.label('/').classes('opacity-30')
                 acc = os.path.join(acc, p)
                 acc_encoded = urllib.parse.quote(acc)
-                ui.link(p, target=f'/?dir={acc_encoded}') \
-                    .classes('text-white text-weight-medium no-underline')
-            
+                ui.element('a').props(f'href="/?dir={acc_encoded}"') \
+                    .classes('text-white text-weight-medium no-underline') \
+                    .text(p)
+          
             if is_file and self.current_file:
                 ui.label('/').classes('opacity-30')
                 ui.label(os.path.basename(self.current_file)).classes('text-primary text-weight-bold')
