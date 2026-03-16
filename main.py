@@ -54,7 +54,7 @@ class MKPDFApp:
 
     def start(self):
         @ui.page('/')
-        async def main_page():
+        async def main_page(file: str = None, dir: str = None):
             ui.dark_mode().enable()
             # Human Theme: Slate & Indigo (Industrial Standard)
             ui.colors(primary='#6366f1', secondary='#1e293b', accent='#818cf8')
@@ -73,8 +73,21 @@ class MKPDFApp:
                 with self.editor_view:
                     await self._render_editor_view()
             
+            # Initial state handling
+            if file:
+                self.current_file = file
+                self.current_dir = os.path.dirname(file)
+                self.browser_view.visible = False
+                self.editor_view.visible = True
+            elif dir:
+                self.current_dir = dir
+                self.browser_view.visible = True
+                self.editor_view.visible = False
+            
             # Caricamento iniziale
             ui.timer(0.1, self.update_ui, once=True)
+            if file:
+                ui.timer(0.2, lambda: self.load_file(file), once=True)
 
 
     async def _render_browser_view(self):
@@ -166,47 +179,51 @@ class MKPDFApp:
             with self.file_list_container:
                 if self.current_dir != self.fm.project_root:
                     parent = os.path.dirname(self.current_dir)
-                    self._render_file_row(".. (Cartella Superiore)", True, parent)
+                    self._render_file_row(".. (Parent Sector)", True, parent)
                 for item in items:
                     self._render_file_row(item['name'], item['is_dir'], item['path'], item)
         except Exception as e:
             ui.notify(str(e), type='negative')
 
     def _render_file_row(self, name, is_dir, path, info=None):
+        target = f'/?dir={path}' if is_dir else f'/?file={path}'
+        
         async def handle_click():
             if is_dir: 
                 await self.go_to_dir(path)
             else: 
                 await self.load_file(path)
 
-        with ui.row().classes('w-full q-pa-sm border-b border-white/5 items-center cursor-pointer hover:bg-[#1e293b] transition-colors') \
-            .on('click', handle_click):
-            
-            icon = 'folder' if is_dir else 'description'
-            icon_color = 'warning' if is_dir else 'primary'
-            ui.icon(icon, size='sm', color=icon_color).classes('opacity-70')
-            ui.label(name).classes('col-grow truncate text-weight-medium')
-            
-            if info and name != ".. (Cartella Superiore)":
-                ui.label(info['size']).classes('col-2 text-right text-caption monospace opacity-60')
-                ui.label(info['mtime']).classes('col-3 text-right q-pr-md text-caption monospace opacity-60')
-                if not is_dir:
-                    ui.button(icon='delete', on_click=lambda: self.open_confirm_delete(path)).props('flat round dense color=negative').classes('q-ml-sm')
+        with ui.link(target=target).classes('w-full no-underline text-white'):
+            with ui.row().classes('w-full q-pa-sm border-b border-white/5 items-center cursor-pointer hover:bg-[#1e293b] transition-colors') \
+                .on('click', handle_click, stop_propagation=True):
+                
+                icon = 'folder' if is_dir else 'description'
+                icon_color = 'warning' if is_dir else 'primary'
+                ui.icon(icon, size='sm', color=icon_color).classes('opacity-70')
+                ui.label(name).classes('col-grow truncate text-weight-medium')
+                
+                if info and name != ".. (Parent Sector)":
+                    ui.label(info['size']).classes('col-2 text-right text-caption monospace opacity-60')
+                    ui.label(info['mtime']).classes('col-3 text-right q-pr-md text-caption monospace opacity-60')
+                    if not is_dir:
+                        ui.button(icon='delete', on_click=lambda: self.open_confirm_delete(path)).props('flat round dense color=negative').classes('q-ml-sm').on('click', lambda e: e.stop_propagation())
 
     def _render_search_match(self, match):
         async def handle_click():
             await self.load_file(match['path'])
 
-        with ui.row().classes('w-full q-pa-md border-b border-white/5 items-center cursor-pointer hover:bg-[#1e293b] transition-colors') \
-            .on('click', handle_click):
-            
-            with ui.column().classes('col-grow'):
-                with ui.row().classes('items-center q-gutter-xs'):
-                    ui.icon('description', size='xs', color='primary').classes('opacity-50')
-                    ui.label(match['name']).classes('text-weight-bold text-primary')
-                    ui.label(f"linea {match['line']}").classes('text-caption monospace opacity-40')
+        with ui.link(target=f"/?file={match['path']}").classes('w-full no-underline text-white'):
+            with ui.row().classes('w-full q-pa-md border-b border-white/5 items-center cursor-pointer hover:bg-[#1e293b] transition-colors') \
+                .on('click', handle_click, stop_propagation=True):
                 
-                ui.label(match['excerpt']).classes('text-caption text-grey-4 truncate-2-lines q-pl-md border-l-2 border-primary/20')
+                with ui.column().classes('col-grow'):
+                    with ui.row().classes('items-center q-gutter-xs'):
+                        ui.icon('description', size='xs', color='primary').classes('opacity-50')
+                        ui.label(match['name']).classes('text-weight-bold text-primary')
+                        ui.label(f"linea {match['line']}").classes('text-caption monospace opacity-40')
+                    
+                    ui.label(match['excerpt']).classes('text-caption text-grey-4 truncate-2-lines q-pl-md border-l-2 border-primary/20')
 
     async def _update_search_results(self):
         self.file_list_container.clear()
@@ -231,8 +248,9 @@ class MKPDFApp:
             async def go_root():
                 await self.close_file()
                 await self.go_to_dir(self.fm.project_root)
-            ui.label(os.path.basename(self.fm.project_root)).classes('text-primary text-weight-bold cursor-pointer') \
-                .on('click', go_root)
+            ui.link(os.path.basename(self.fm.project_root), target=f'/?dir={self.fm.project_root}') \
+                .classes('text-primary text-weight-bold no-underline') \
+                .on('click', go_root, stop_propagation=True)
             
             acc = self.fm.project_root
             for p in parts:
@@ -241,7 +259,9 @@ class MKPDFApp:
                 async def mk_go(p_auto=acc):
                     await self.close_file()
                     await self.go_to_dir(p_auto)
-                ui.label(p).classes('cursor-pointer text-weight-medium').on('click', mk_go)
+                ui.link(p, target=f'/?dir={acc}') \
+                    .classes('text-white text-weight-medium no-underline') \
+                    .on('click', mk_go, stop_propagation=True)
             
             if is_file and self.current_file:
                 ui.label('/').classes('opacity-30')
