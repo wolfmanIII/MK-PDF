@@ -188,10 +188,7 @@ class MKPDFApp:
     def _render_file_row(self, name, is_dir, path, info=None):
         target = f'/?dir={path}' if is_dir else f'/?file={path}'
         
-        async def handle_click(e=None):
-            if e: 
-                e.stop_propagation()
-                e.prevent_default()
+        async def handle_click():
             if is_dir: 
                 await self.go_to_dir(path)
             else: 
@@ -199,7 +196,7 @@ class MKPDFApp:
 
         with ui.link(target=target).classes('w-full no-underline text-white'):
             with ui.row().classes('w-full q-pa-sm border-b border-white/5 items-center cursor-pointer hover:bg-[#1e293b] transition-colors') \
-                .on('click', handle_click):
+                .on('click.prevent.stop', handle_click):
                 
                 icon = 'folder' if is_dir else 'description'
                 icon_color = 'warning' if is_dir else 'primary'
@@ -210,21 +207,17 @@ class MKPDFApp:
                     ui.label(info['size']).classes('col-2 text-right text-caption monospace opacity-60')
                     ui.label(info['mtime']).classes('col-3 text-right q-pr-md text-caption monospace opacity-60')
                     if not is_dir:
-                        async def delete_with_stop(e):
-                            e.stop_propagation()
+                        async def delete_with_stop():
                             self.open_confirm_delete(path)
-                        ui.button(icon='delete', on_click=delete_with_stop).props('flat round dense color=negative').classes('q-ml-sm')
+                        ui.button(icon='delete', on_click=delete_with_stop).props('flat round dense color=negative').classes('q-ml-sm').on('click.stop', lambda: None)
 
     def _render_search_match(self, match):
-        async def handle_click(e=None):
-            if e: 
-                e.stop_propagation()
-                e.prevent_default()
+        async def handle_click():
             await self.load_file(match['path'])
 
         with ui.link(target=f"/?file={match['path']}").classes('w-full no-underline text-white'):
             with ui.row().classes('w-full q-pa-md border-b border-white/5 items-center cursor-pointer hover:bg-[#1e293b] transition-colors') \
-                .on('click', handle_click):
+                .on('click.prevent.stop', handle_click):
                 
                 with ui.column().classes('col-grow'):
                     with ui.row().classes('items-center q-gutter-xs'):
@@ -255,29 +248,23 @@ class MKPDFApp:
         parts = self.fm.get_breadcrumbs(target_path)
         with container:
             ui.icon('account_tree', size='xs', color='primary').classes('opacity-50')
-            async def go_root(e=None):
-                if e: 
-                    e.stop_propagation()
-                    e.prevent_default()
+            async def go_root():
                 await self.close_file()
                 await self.go_to_dir(self.fm.project_root)
             ui.link(os.path.basename(self.fm.project_root), target=f'/?dir={self.fm.project_root}') \
                 .classes('text-primary text-weight-bold no-underline') \
-                .on('click', go_root)
+                .on('click.prevent.stop', go_root)
             
             acc = self.fm.project_root
             for p in parts:
                 ui.label('/').classes('opacity-30')
                 acc = os.path.join(acc, p)
-                async def mk_go(e=None, p_auto=acc):
-                    if e: 
-                        e.stop_propagation()
-                        e.prevent_default()
+                async def mk_go(p_auto=acc):
                     await self.close_file()
                     await self.go_to_dir(p_auto)
                 ui.link(p, target=f'/?dir={acc}') \
                     .classes('text-white text-weight-medium no-underline') \
-                    .on('click', mk_go)
+                    .on('click.prevent.stop', mk_go)
             
             if is_file and self.current_file:
                 ui.label('/').classes('opacity-30')
@@ -323,14 +310,23 @@ class MKPDFApp:
         await self.update_ui()
 
     async def load_file(self, path):
+        if not path: return
         self.current_file = path
-        content = await self.fm.read_file(path)
-        self.browser_view.visible = False
-        self.editor_view.visible = True
-        await asyncio.sleep(0.1) 
-        await ui.run_javascript('if (window.MKEditor) window.MKEditor.init()')
-        self.editor.set_content(content)
-        self._update_breadcrumbs(self.editor_breadcrumb_container, os.path.dirname(path), True)
+        try:
+            content = await self.fm.read_file(path)
+            self.browser_view.visible = False
+            self.editor_view.visible = True
+            await asyncio.sleep(0.1) 
+            # Robusto: tentiamo init JS con timeout maggiore e check esistenza
+            try:
+                await ui.run_javascript('if (window.MKEditor) window.MKEditor.init()', timeout=2.0)
+            except Exception as js_err:
+                print(f"JS Sync non-critical error: {js_err}")
+            
+            self.editor.set_content(content)
+            self._update_breadcrumbs(self.editor_breadcrumb_container, os.path.dirname(path), True)
+        except Exception as e:
+            ui.notify(f"Error loading {os.path.basename(path)}: {e}", type='negative')
 
     async def close_file(self):
         self.current_file = None
