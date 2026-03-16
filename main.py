@@ -8,7 +8,6 @@ from fastapi.staticfiles import StaticFiles
 import os
 import argparse
 import asyncio
-import urllib.parse
 
 # --- Configuration ---
 GOTENBERG_URL = os.getenv('GOTENBERG_URL', 'http://localhost:3000')
@@ -20,8 +19,9 @@ parser.add_argument('path', nargs='?', default=None)
 args, _ = parser.parse_known_args()
 PROJECT_ROOT = os.path.abspath(args.path) if args.path else None
 
-# Sessions for PDF and State
-pdf_sessions = {}  # {client_id: b'pdf_data'}
+# Cache per il PDF
+pdf_cache = {'latest': b''}
+
 def read_template(filename):
     path = os.path.join(os.path.dirname(__file__), 'templates', filename)
     with open(path, 'r') as f: return f.read()
@@ -29,16 +29,11 @@ def read_template(filename):
 app.mount('/static', StaticFiles(directory='static'), name='static')
 
 class MKPDFApp:
-    def __init__(self, initial_file=None, initial_dir=None):
-        # Auto-init FM if root is missing but path is specified
-        root = PROJECT_ROOT
-        if not root:
-            if initial_file: root = os.path.dirname(initial_file)
-            elif initial_dir: root = initial_dir
-            
-        self.fm = FileManager(root) if root else None
+    def __init__(self):
+        self.fm = FileManager(PROJECT_ROOT) if PROJECT_ROOT else None
         self.editor = Editor()
         self.client = GotenbergClient(GOTENBERG_URL)
+        
         self.current_file = None
         self.current_dir = self.fm.project_root if self.fm else USER_HOME
         
@@ -52,61 +47,34 @@ class MKPDFApp:
         # UI Options
         self.internal_scroll = False
         
-        # Core Infrastructure
-        self.nicegui_client = None
-        
-        # UI Elements (initialized per session)
-        self.browser_view = None
-        self.editor_view = None
+        # UI Elements
         self.file_list_container = None
         self.breadcrumb_container = None
         self.editor_breadcrumb_container = None
-        self.editor_header = None
-        self.editor_container = None
-        self.editor_card = None
-        self.scroll_toggle_btn = None
-        self.search_input = None
 
-    async def render(self, file: str = None, dir: str = None):
-        self.nicegui_client = ui.context.client
-        try:
-            await self.nicegui_client.connected(timeout=5.0)
-        except Exception:
-            print("Connection establish timeout - proceeding with caution")
+    def start(self):
+        @ui.page('/')
+        async def main_page():
+            ui.dark_mode().enable()
+            # Human Theme: Slate & Indigo (Industrial Standard)
+            ui.colors(primary='#6366f1', secondary='#1e293b', accent='#818cf8')
             
-        ui.dark_mode().enable()
-        # Human Theme: Slate & Indigo (Industrial Standard)
-        ui.colors(primary='#6366f1', secondary='#1e293b', accent='#818cf8')
-        
-        ui.add_head_html(read_template('base_head.html'))
-        ui.add_head_html(read_template('editor_head.html'))
-        
-        with ui.column().classes('w-full bg-[#0f172a] min-h-screen'):
-            self.browser_view = ui.column().classes('w-full q-pa-lg q-gutter-md')
-            self.browser_view.visible = True
-            with self.browser_view:
-                await self._render_browser_view()
+            ui.add_head_html(read_template('base_head.html'))
+            ui.add_head_html(read_template('editor_head.html'))
             
-            self.editor_view = ui.column().classes('w-full')
-            self.editor_view.visible = False
-            with self.editor_view:
-                await self._render_editor_view()
-        
-        # Initial state handling
-        if file:
-            self.current_file = file
-            self.current_dir = os.path.dirname(file)
-            self.browser_view.visible = False
-            self.editor_view.visible = True
-        elif dir:
-            self.current_dir = dir
-            self.browser_view.visible = True
-            self.editor_view.visible = False
-        
-        # Caricamento iniziale - Eseguito direttamente per preservare il contesto
-        await self.update_ui()
-        if file:
-            await self.load_file(file)
+            with ui.column().classes('w-full bg-[#0f172a] min-h-screen'):
+                self.browser_view = ui.column().classes('w-full q-pa-lg q-gutter-md')
+                self.browser_view.visible = True
+                with self.browser_view:
+                    await self._render_browser_view()
+                
+                self.editor_view = ui.column().classes('w-full')
+                self.editor_view.visible = False
+                with self.editor_view:
+                    await self._render_editor_view()
+            
+            # Caricamento iniziale
+            ui.timer(0.1, self.update_ui, once=True)
 
 
     async def _render_browser_view(self):
@@ -166,7 +134,7 @@ class MKPDFApp:
                     .tooltip('Toggle Scroll Protocol') \
                     .classes('opacity-50 hover:opacity-100')
                 
-                ui.button(icon='fullscreen', on_click=lambda: self.nicegui_client.run_javascript('if(window.MKEditor) window.MKEditor.instance.toggleFullScreen()') if self.nicegui_client else None).props('flat color=primary id=btn-fullscreen').tooltip('Neural Link Fullscreen')
+                ui.button(icon='fullscreen', on_click=lambda: ui.run_javascript('if(window.MKEditor) window.MKEditor.instance.toggleFullScreen()')).props('flat color=primary id=btn-fullscreen').tooltip('Neural Link Fullscreen')
                 ui.button('Terminate', icon='close', on_click=self.close_file).props('flat text-color=grey id=btn-close')
                 ui.button('Secure Records', icon='save', on_click=self.save_file).props('unelevated color=primary id=btn-save')
                 ui.select(options=self.available_templates, value=self.active_pdf_template, on_change=lambda e: setattr(self, 'active_pdf_template', e.value)).props('flat dense options-dark').classes('text-caption opacity-70 w-24')
@@ -198,45 +166,47 @@ class MKPDFApp:
             with self.file_list_container:
                 if self.current_dir != self.fm.project_root:
                     parent = os.path.dirname(self.current_dir)
-                    self._render_file_row(".. (Parent Sector)", True, parent)
+                    self._render_file_row(".. (Cartella Superiore)", True, parent)
                 for item in items:
                     self._render_file_row(item['name'], item['is_dir'], item['path'], item)
         except Exception as e:
             ui.notify(str(e), type='negative')
 
     def _render_file_row(self, name, is_dir, path, info=None):
-        encoded_path = urllib.parse.quote(path)
-        target = f'/?dir={encoded_path}' if is_dir else f'/?file={encoded_path}'
-        
-        with ui.row().classes('w-full q-pa-sm border-b border-white/5 items-center hover:bg-[#1e293b] transition-colors group'):
-            with ui.element('a').props(f'href="{target}"').classes('col-grow no-underline text-white'):
-                with ui.row().classes('items-center q-gutter-sm'):
-                    icon = 'folder' if is_dir else 'description'
-                    icon_color = 'warning' if is_dir else 'primary'
-                    ui.icon(icon, size='sm', color=icon_color).classes('opacity-70')
-                    ui.label(name).classes('truncate text-weight-medium')
+        async def handle_click():
+            if is_dir: 
+                await self.go_to_dir(path)
+            else: 
+                await self.load_file(path)
+
+        with ui.row().classes('w-full q-pa-sm border-b border-white/5 items-center cursor-pointer hover:bg-[#1e293b] transition-colors') \
+            .on('click', handle_click):
             
-            # Info e Azioni (NON nel link per evitare errori di anchor Quasar)
-            if info and name != ".. (Parent Sector)":
+            icon = 'folder' if is_dir else 'description'
+            icon_color = 'warning' if is_dir else 'primary'
+            ui.icon(icon, size='sm', color=icon_color).classes('opacity-70')
+            ui.label(name).classes('col-grow truncate text-weight-medium')
+            
+            if info and name != ".. (Cartella Superiore)":
                 ui.label(info['size']).classes('col-2 text-right text-caption monospace opacity-60')
                 ui.label(info['mtime']).classes('col-3 text-right q-pr-md text-caption monospace opacity-60')
                 if not is_dir:
-                    ui.button(icon='delete', on_click=lambda: self.open_confirm_delete(path)) \
-                        .props('flat round dense color=negative') \
-                        .classes('q-ml-sm opacity-0 group-hover:opacity-100 transition-opacity')
+                    ui.button(icon='delete', on_click=lambda: self.open_confirm_delete(path)).props('flat round dense color=negative').classes('q-ml-sm')
 
     def _render_search_match(self, match):
-        encoded_path = urllib.parse.quote(match['path'])
-        with ui.element('a').props(f'href="/?file={encoded_path}"').classes('w-full no-underline text-white'):
-            with ui.row().classes('w-full q-pa-md border-b border-white/5 items-center cursor-pointer hover:bg-[#1e293b] transition-colors'):
+        async def handle_click():
+            await self.load_file(match['path'])
+
+        with ui.row().classes('w-full q-pa-md border-b border-white/5 items-center cursor-pointer hover:bg-[#1e293b] transition-colors') \
+            .on('click', handle_click):
+            
+            with ui.column().classes('col-grow'):
+                with ui.row().classes('items-center q-gutter-xs'):
+                    ui.icon('description', size='xs', color='primary').classes('opacity-50')
+                    ui.label(match['name']).classes('text-weight-bold text-primary')
+                    ui.label(f"linea {match['line']}").classes('text-caption monospace opacity-40')
                 
-                with ui.column().classes('col-grow'):
-                    with ui.row().classes('items-center q-gutter-xs'):
-                        ui.icon('description', size='xs', color='primary').classes('opacity-50')
-                        ui.label(match['name']).classes('text-weight-bold text-primary')
-                        ui.label(f"linea {match['line']}").classes('text-caption monospace opacity-40')
-                    
-                    ui.label(match['excerpt']).classes('text-caption text-grey-4 truncate-2-lines q-pl-md border-l-2 border-primary/20')
+                ui.label(match['excerpt']).classes('text-caption text-grey-4 truncate-2-lines q-pl-md border-l-2 border-primary/20')
 
     async def _update_search_results(self):
         self.file_list_container.clear()
@@ -254,25 +224,25 @@ class MKPDFApp:
                 self._render_search_match(match)
 
     def _update_breadcrumbs(self, container, target_path, is_file=False):
-        if not container or not hasattr(container, 'client') or not container.client: return
         container.clear()
         parts = self.fm.get_breadcrumbs(target_path)
         with container:
             ui.icon('account_tree', size='xs', color='primary').classes('opacity-50')
-            root_encoded = urllib.parse.quote(self.fm.project_root)
-            ui.element('a').props(f'href="/?dir={root_encoded}"') \
-                .classes('text-primary text-weight-bold no-underline') \
-                .text(os.path.basename(self.fm.project_root))
+            async def go_root():
+                await self.close_file()
+                await self.go_to_dir(self.fm.project_root)
+            ui.label(os.path.basename(self.fm.project_root)).classes('text-primary text-weight-bold cursor-pointer') \
+                .on('click', go_root)
             
             acc = self.fm.project_root
             for p in parts:
                 ui.label('/').classes('opacity-30')
                 acc = os.path.join(acc, p)
-                acc_encoded = urllib.parse.quote(acc)
-                ui.element('a').props(f'href="/?dir={acc_encoded}"') \
-                    .classes('text-white text-weight-medium no-underline') \
-                    .text(p)
-          
+                async def mk_go(p_auto=acc):
+                    await self.close_file()
+                    await self.go_to_dir(p_auto)
+                ui.label(p).classes('cursor-pointer text-weight-medium').on('click', mk_go)
+            
             if is_file and self.current_file:
                 ui.label('/').classes('opacity-30')
                 ui.label(os.path.basename(self.current_file)).classes('text-primary text-weight-bold')
@@ -317,25 +287,14 @@ class MKPDFApp:
         await self.update_ui()
 
     async def load_file(self, path):
-        if not path: return
         self.current_file = path
-        try:
-            content = await self.fm.read_file(path)
-            self.browser_view.visible = False
-            self.editor_view.visible = True
-            await asyncio.sleep(0.1) 
-            # Robusto: tentiamo init JS con timeout maggiore e check esistenza
-            try:
-                if self.nicegui_client:
-                    await self.nicegui_client.run_javascript('if (window.MKEditor) window.MKEditor.init()', timeout=5.0)
-            except Exception as js_err:
-                print(f"JS Sync non-critical error: {js_err}")
-            
-            if self.nicegui_client:
-                await self.editor.set_content(content, self.nicegui_client)
-            self._update_breadcrumbs(self.editor_breadcrumb_container, os.path.dirname(path), True)
-        except Exception as e:
-            ui.notify(f"Error loading {os.path.basename(path)}: {e}", type='negative')
+        content = await self.fm.read_file(path)
+        self.browser_view.visible = False
+        self.editor_view.visible = True
+        await asyncio.sleep(0.1) 
+        await ui.run_javascript('if (window.MKEditor) window.MKEditor.init()')
+        self.editor.set_content(content)
+        self._update_breadcrumbs(self.editor_breadcrumb_container, os.path.dirname(path), True)
 
     async def close_file(self):
         self.current_file = None
@@ -345,27 +304,36 @@ class MKPDFApp:
 
     async def save_file(self):
         if not self.current_file: return
-        try:
-            content = await self.editor.get_content(self.nicegui_client)
-            await self.fm.save_file(self.current_file, content)
-            ui.notify('Data secured successfully', type='positive')
-        except Exception as e:
-            ui.notify(f"Save failure: {e}", type='negative')
+        content = await self.editor.get_content()
+        await self.fm.save_file(self.current_file, content)
+        ui.notify('Dati salvati', type='positive')
 
     async def print_pdf(self):
         if not self.current_file: return
         ui.notify('Generazione PDF in corso...', spinner=True)
         try:
-            content = await self.editor.get_content(self.nicegui_client)
-            current_template = self.active_pdf_template
-            pdf_content = await self.client.convert_markdown(content, current_template)
+            content = await self.editor.get_content()
             
-            # Cache per-sessione
-            if self.nicegui_client:
-                pdf_sessions[self.nicegui_client.id] = pdf_content
-                ui.download(f'/pdf_preview/{self.nicegui_client.id}')
+            # Caricamento template dinamico
+            template_path = os.path.join(os.path.dirname(__file__), 'templates', 'export', self.active_pdf_template)
+            header_html = None
+            footer_html = None
             
-            ui.notify('PDF Synthesis complete', type='positive')
+            h_file = os.path.join(template_path, 'header.html')
+            f_file = os.path.join(template_path, 'footer.html')
+            
+            if os.path.exists(h_file):
+                with open(h_file, 'r') as f: header_html = f.read()
+            if os.path.exists(f_file):
+                with open(f_file, 'r') as f: footer_html = f.read()
+
+            pdf_bytes = await asyncio.to_thread(self.client.convert_markdown, content, header_html, footer_html)
+            if pdf_bytes:
+                pdf_cache['latest'] = pdf_bytes
+                ui.notify('PDF pronto', type='positive')
+                await ui.run_javascript('window.open("/pdf_preview?t=" + Date.now(), "_blank"); null;')
+            else:
+                ui.notify('Errore nella conversione PDF', type='negative')
         except Exception as e:
             ui.notify(f'Errore: {str(e)}', type='negative')
         finally:
@@ -402,16 +370,13 @@ class MKPDFApp:
         dialog.close()
 
 
-@ui.page('/')
-async def main_page(file: str = None, dir: str = None):
-    app_instance = MKPDFApp(initial_file=file, initial_dir=dir)
-    await app_instance.render(file=file, dir=dir)
-@app.get('/pdf_preview/{client_id}')
-def pdf_preview(client_id: str):
-    if client_id not in pdf_sessions:
-        return Response(status_code=404)
+app_obj = MKPDFApp()
+app_obj.start()
+
+@app.get('/pdf_preview')
+def pdf_preview():
     return Response(
-        content=pdf_sessions[client_id], 
+        content=pdf_cache['latest'], 
         media_type='application/pdf',
         headers={'Content-Disposition': 'inline; filename="preview.pdf"'}
     )

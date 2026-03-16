@@ -1,7 +1,6 @@
 import requests
 import markdown
 import os
-import uuid
 
 class GotenbergClient:
     def __init__(self, host='http://localhost:3000'):
@@ -11,11 +10,9 @@ class GotenbergClient:
         # Convert MD to HTML with Tailwind/Mermaid support
         html_content = self._wrap_html(md_content)
         
-        temp_id = str(uuid.uuid4())
-        temp_html = f'temp_{temp_id}.html'
-        
         try:
-            # Save temporary HTML for Gotenberg
+            # Save temporary HTML for Gotenberg (still needed as a file for the multipart request)
+            temp_html = 'temp_print.html'
             with open(temp_html, 'w') as f:
                 f.write(html_content)
 

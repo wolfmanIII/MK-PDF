@@ -7,20 +7,10 @@ class Editor:
             # Textarea nuda per EasyMDE
             ui.html('<textarea id="chronos-editor"></textarea>').classes('w-full flex-grow')
 
-    async def set_content(self, content, client):
+    def set_content(self, content):
         # Usiamo json.dumps per compatibilità totale con JavaScript
         content_json = json.dumps(content)
-        if client:
-            try:
-                await client.run_javascript(f'if (window.MKEditor) window.MKEditor.setValue({content_json})', timeout=5.0)
-            except Exception as e:
-                print(f"Editor set_content failed: {e}")
+        ui.run_javascript(f'if (window.MKEditor) window.MKEditor.setValue({content_json})')
 
-    async def get_content(self, client):
-        if client:
-            try:
-                return await client.run_javascript('window.MKEditor.getValue()', timeout=5.0)
-            except Exception as e:
-                print(f"Editor get_content failed: {e}")
-                ui.notify("Sync Error: Neural link lost", type='negative')
-        return ""
+    async def get_content(self):
+        return await ui.run_javascript('window.MKEditor.getValue()')

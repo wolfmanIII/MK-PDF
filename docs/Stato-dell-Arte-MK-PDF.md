@@ -54,7 +54,6 @@ Dopo diverse iterazioni, la soluzione definitiva per l'anteprima PDF implementat
 In assenza di Sidebar, la navigazione è stata integrata nel "Browser Centrale":
 - **Breadcrumbs Dinamici**: Permettono salti rapidi tra le directory e la Root del progetto direttamente dall'area di lavoro.
 - **Gestione Root**: Il comando "Establish Root" permette di ricalibrare istantaneamente lo scope del progetto. Si è scelto di rimuovere l'integrazione Git diretta per favorire l'uso di client esterni specializzati e aumentare la robustezza del nucleo di editing.
-- **Deep Linking**: Pieno supporto ai parametri di query URL. Navigazione trasparente tra file e directory che permette l'apertura in nuove schede e il ripristino istantaneo dello stato dell'editor.
 - **Localizzazione Integrale**: L'interfaccia è stata completamente tradotta in inglese, adottando una terminologia tecnica e industriale ("Secure Records", "Data Purge", "Neural Link Fullscreen") coerente con il lore di riferimento.
 - **Search Engine**: Motore di ricerca ricorsivo ad alta velocità con anteprima del contesto e salto diretto alla riga.
 
@@ -77,12 +76,10 @@ In assenza di Sidebar, la navigazione è stata integrata nel "Browser Centrale":
 - [x] Transizione ad architettura asincrona (`aiofiles`).
 
 ---
-- [x] Localizzazione completa dell'interfaccia in inglese (Industrial Tone).
-
 ---
-- [x] Supporto Deep Linking (file/dir via URL).
-- [x] Multi-tab support tramite integrazione browser nativa.
-
+- [ ] **Native Multi-Tab**: [DEFERRED] Rimossa per prioritizzare la stabilità del DOM e della navigazione standard.
+ Oscar: OK
 ---
-**Ultimo Aggiornamento**: 16 Marzo 2026 (Deep Linking Update - v3.2)
+**Ultimo Aggiornamento**: 16 Marzo 2026 (Rollback to v1.3.0 [STABLE])
 **Stato**: Stabile / In Produzione
+ Oscar: OK
