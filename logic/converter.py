@@ -10,9 +10,12 @@ class GotenbergClient:
         # Convert MD to HTML with Tailwind/Mermaid support
         html_content = self._wrap_html(md_content)
         
+        import uuid
+        temp_id = str(uuid.uuid4())
+        temp_html = f'temp_{temp_id}.html'
+        
         try:
-            # Save temporary HTML for Gotenberg (still needed as a file for the multipart request)
-            temp_html = 'temp_print.html'
+            # Save temporary HTML for Gotenberg
             with open(temp_html, 'w') as f:
                 f.write(html_content)
 

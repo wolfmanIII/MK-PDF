@@ -213,8 +213,7 @@ class MKPDFApp:
                 await self.load_file(path)
 
         with ui.link(target=target).classes('w-full no-underline text-white'):
-            with ui.row().classes('w-full q-pa-sm border-b border-white/5 items-center cursor-pointer hover:bg-[#1e293b] transition-colors') \
-                .on('click.prevent.stop', handle_click):
+            with ui.row().classes('w-full q-pa-sm border-b border-white/5 items-center cursor-pointer hover:bg-[#1e293b] transition-colors'):
                 
                 icon = 'folder' if is_dir else 'description'
                 icon_color = 'warning' if is_dir else 'primary'
@@ -230,12 +229,8 @@ class MKPDFApp:
                         ui.button(icon='delete', on_click=delete_with_stop).props('flat round dense color=negative').classes('q-ml-sm').on('click.stop', lambda: None)
 
     def _render_search_match(self, match):
-        async def handle_click():
-            await self.load_file(match['path'])
-
         with ui.link(target=f"/?file={match['path']}").classes('w-full no-underline text-white'):
-            with ui.row().classes('w-full q-pa-md border-b border-white/5 items-center cursor-pointer hover:bg-[#1e293b] transition-colors') \
-                .on('click.prevent.stop', handle_click):
+            with ui.row().classes('w-full q-pa-md border-b border-white/5 items-center cursor-pointer hover:bg-[#1e293b] transition-colors'):
                 
                 with ui.column().classes('col-grow'):
                     with ui.row().classes('items-center q-gutter-xs'):
@@ -266,23 +261,15 @@ class MKPDFApp:
         parts = self.fm.get_breadcrumbs(target_path)
         with container:
             ui.icon('account_tree', size='xs', color='primary').classes('opacity-50')
-            async def go_root():
-                await self.close_file()
-                await self.go_to_dir(self.fm.project_root)
             ui.link(os.path.basename(self.fm.project_root), target=f'/?dir={self.fm.project_root}') \
-                .classes('text-primary text-weight-bold no-underline') \
-                .on('click.prevent.stop', go_root)
+                .classes('text-primary text-weight-bold no-underline')
             
             acc = self.fm.project_root
             for p in parts:
                 ui.label('/').classes('opacity-30')
                 acc = os.path.join(acc, p)
-                async def mk_go(p_auto=acc):
-                    await self.close_file()
-                    await self.go_to_dir(p_auto)
                 ui.link(p, target=f'/?dir={acc}') \
-                    .classes('text-white text-weight-medium no-underline') \
-                    .on('click.prevent.stop', mk_go)
+                    .classes('text-white text-weight-medium no-underline')
             
             if is_file and self.current_file:
                 ui.label('/').classes('opacity-30')
