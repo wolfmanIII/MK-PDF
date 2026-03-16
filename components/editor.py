@@ -11,9 +11,16 @@ class Editor:
         # Usiamo json.dumps per compatibilità totale con JavaScript
         content_json = json.dumps(content)
         if client:
-            await client.run_javascript(f'if (window.MKEditor) window.MKEditor.setValue({content_json})')
+            try:
+                await client.run_javascript(f'if (window.MKEditor) window.MKEditor.setValue({content_json})', timeout=5.0)
+            except Exception as e:
+                print(f"Editor set_content failed: {e}")
 
     async def get_content(self, client):
         if client:
-            return await client.run_javascript('window.MKEditor.getValue()')
+            try:
+                return await client.run_javascript('window.MKEditor.getValue()', timeout=5.0)
+            except Exception as e:
+                print(f"Editor get_content failed: {e}")
+                ui.notify("Sync Error: Neural link lost", type='negative')
         return ""

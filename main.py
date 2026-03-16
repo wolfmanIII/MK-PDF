@@ -28,11 +28,16 @@ def read_template(filename):
 app.mount('/static', StaticFiles(directory='static'), name='static')
 
 class MKPDFApp:
-    def __init__(self):
-        self.fm = FileManager(PROJECT_ROOT) if PROJECT_ROOT else None
+    def __init__(self, initial_file=None, initial_dir=None):
+        # Auto-init FM if root is missing but path is specified
+        root = PROJECT_ROOT
+        if not root:
+            if initial_file: root = os.path.dirname(initial_file)
+            elif initial_dir: root = initial_dir
+            
+        self.fm = FileManager(root) if root else None
         self.editor = Editor()
         self.client = GotenbergClient(GOTENBERG_URL)
-        
         self.current_file = None
         self.current_dir = self.fm.project_root if self.fm else USER_HOME
         
@@ -63,6 +68,11 @@ class MKPDFApp:
 
     async def render(self, file: str = None, dir: str = None):
         self.nicegui_client = ui.context.client
+        try:
+            await self.nicegui_client.connected(timeout=5.0)
+        except Exception:
+            print("Connection establish timeout - proceeding with caution")
+            
         ui.dark_mode().enable()
         # Human Theme: Slate & Indigo (Industrial Standard)
         ui.colors(primary='#6366f1', secondary='#1e293b', accent='#818cf8')
@@ -328,11 +338,12 @@ class MKPDFApp:
             # Robusto: tentiamo init JS con timeout maggiore e check esistenza
             try:
                 if self.nicegui_client:
-                    await self.nicegui_client.run_javascript('if (window.MKEditor) window.MKEditor.init()', timeout=3.0)
+                    await self.nicegui_client.run_javascript('if (window.MKEditor) window.MKEditor.init()', timeout=5.0)
             except Exception as js_err:
                 print(f"JS Sync non-critical error: {js_err}")
             
-            await self.editor.set_content(content, self.nicegui_client)
+            if self.nicegui_client:
+                await self.editor.set_content(content, self.nicegui_client)
             self._update_breadcrumbs(self.editor_breadcrumb_container, os.path.dirname(path), True)
         except Exception as e:
             ui.notify(f"Error loading {os.path.basename(path)}: {e}", type='negative')
@@ -345,9 +356,12 @@ class MKPDFApp:
 
     async def save_file(self):
         if not self.current_file: return
-        content = await self.editor.get_content(self.nicegui_client)
-        await self.fm.save_file(self.current_file, content)
-        ui.notify('Data secured successfully', type='positive')
+        try:
+            content = await self.editor.get_content(self.nicegui_client)
+            await self.fm.save_file(self.current_file, content)
+            ui.notify('Data secured successfully', type='positive')
+        except Exception as e:
+            ui.notify(f"Save failure: {e}", type='negative')
 
     async def print_pdf(self):
         if not self.current_file: return
@@ -401,7 +415,7 @@ class MKPDFApp:
 
 @ui.page('/')
 async def main_page(file: str = None, dir: str = None):
-    app_instance = MKPDFApp()
+    app_instance = MKPDFApp(initial_file=file, initial_dir=dir)
     await app_instance.render(file=file, dir=dir)
 @app.get('/pdf_preview/{client_id}')
 def pdf_preview(client_id: str):
